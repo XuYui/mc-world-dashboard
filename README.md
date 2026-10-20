@@ -32,13 +32,13 @@ pip install pillow fonttools brotli
 python tools/build_assets.py --minecraft "C:/Users/你/AppData/Roaming/.minecraft" --version 26.1.2
 ```
 
-它会生成 `dashboard/defs.json`、`dashboard/static/{tex,skins,heads}/`、`dashboard/static/mcpixel.woff2` 和 `plugin/build/lang.json`（都已在 `.gitignore` 中）。像素字体的中文部分来自游戏附带的 GNU Unifont（SIL OFL 1.1）。
+它会生成 `dashboard/defs.json`、`dashboard/static/{tex,skins,heads}/`、`dashboard/static/mcpixel.woff2` 和 `plugins/build/lang.json`（都已在 `.gitignore` 中）。像素字体的中文部分来自游戏附带的 GNU Unifont（SIL OFL 1.1）。
 
 ## 安装
 
 1. 生成游戏资源（上一节）。
 2. `cp deploy/config.example deploy/config`，填好 SSH 地址、服务器目录和运行服务器的用户。
-3. 部署网页：`./deploy/deploy.sh`；连同墓碑插件：`./deploy/deploy.sh --plugin`（插件在下次重启服务器后加载）。
+3. 部署网页：`./deploy/deploy.sh`；连同插件：`./deploy/deploy.sh --plugin`（插件在下次重启服务器后加载）。
 4. 在服务器上把 `/opt/mc-dashboard/dashboard.env.example` 复制为 `dashboard.env`，至少设置 `DASH_WORLD`（存档文件夹名），然后 `systemctl start mc-dashboard.service`。各项设置见 [dashboard/dashboard.env.example](dashboard/dashboard.env.example)。
 5. 可选：把 squaremap `config.yml` 里的 `heads-url` 改成 `dashboard/heads/{uuid}.png`，地图上的玩家头像就和网页一致（重启后生效）。
 
@@ -57,7 +57,7 @@ squaremap 实时 players.json ────────────────�
 
 - `dashboard/gen.py`：数据生成脚本，只用 Python 标准库。服务器日志会被复制一份到 `state/logs/`，以免服务器清理旧日志后联机记录丢失。
 - `dashboard/static/`：网页（无框架、无构建步骤）。`maphook.js` 被注入 squaremap 页面，用来拿到它的 Leaflet 地图以实现跟随。
-- `plugin/`：DeathMarkers 插件源码，`build.sh` 直接用服务器自带的库编译，不需要 Gradle。
+- `plugins/`：两个可选插件。DeathMarkers 记录死亡并画墓碑；DashboardHealth 每 5 秒把 TPS、每刻耗时、内存和 CPU 写进 `dashboard/health.json`，状态栏会显示。`build.sh` 直接用服务器自带的库编译，不需要 Gradle。
 - `tools/`：从客户端生成游戏资源和像素字体。
 
 ## 隐私

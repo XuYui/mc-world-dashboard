@@ -4,7 +4,7 @@ dashboard/static/tex/
 dashboard/static/skins/
 dashboard/static/heads/
 dashboard/static/mcpixel.woff2
-plugin/build/
+plugins/build/
 
 # Your server's connection details
 deploy/config

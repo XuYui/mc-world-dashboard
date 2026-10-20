@@ -11,7 +11,7 @@ Outputs (all git-ignored):
     dashboard/static/skins/...          the 18 default player skins
     dashboard/static/heads/<skin>.png   32x32 face + hat for each default skin
     dashboard/static/mcpixel.woff2      pixel font subset
-    plugin/build/lang.json              zh_cn strings for death-marker tooltips
+    plugins/build/lang.json             zh_cn strings for death-marker tooltips
 """
 import argparse
 import glob
@@ -81,8 +81,8 @@ def main():
 
     # Plugin tooltips: death templates plus every entity / item / block name an argument may use.
     plugin_lang = {k: v for k, v in lang.items() if k.startswith(("death.", "entity.minecraft.", "item.minecraft.", "block.minecraft."))}
-    os.makedirs(os.path.join(ROOT, "plugin", "build"), exist_ok=True)
-    json.dump(plugin_lang, open(os.path.join(ROOT, "plugin", "build", "lang.json"), "w", encoding="utf-8"), ensure_ascii=False)
+    os.makedirs(os.path.join(ROOT, "plugins", "build"), exist_ok=True)
+    json.dump(plugin_lang, open(os.path.join(ROOT, "plugins", "build", "lang.json"), "w", encoding="utf-8"), ensure_ascii=False)
 
     # Font: every character the page can show (game names, page text, generator strings).
     text = "".join(a["title"] for a in defs["advancements"]) + "".join(defs["ids"].values())

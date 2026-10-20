@@ -1,0 +1,6 @@
+name: DashboardHealth
+version: 1.0.0
+main: io.github.xuyui.dashboardhealth.DashboardHealthPlugin
+api-version: '26.1'
+depend: [squaremap]
+description: Publishes TPS, tick time, memory and CPU as JSON next to squaremap's web page.

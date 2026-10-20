@@ -700,6 +700,27 @@ def sync_root():
     _write_if_changed(index, ours)
 
 
+def tile_index():
+    """Which squaremap tiles exist, per world and zoom: {world: {zoom: [[x, z], ...]}}.
+    The page's map export stitches these; the web server cannot list directories."""
+    out = {}
+    root = os.path.join(os.path.dirname(OUT), "tiles")
+    for world in sorted(os.listdir(root)) if os.path.isdir(root) else []:
+        zooms = {}
+        for z in sorted(os.listdir(os.path.join(root, world))) if os.path.isdir(os.path.join(root, world)) else []:
+            if not z.isdigit():
+                continue
+            coords = []
+            for name in os.listdir(os.path.join(root, world, z)):
+                m = re.match(r"^(-?\d+)_(-?\d+)\.png$", name)
+                if m:
+                    coords.append([int(m.group(1)), int(m.group(2))])
+            zooms[z] = sorted(coords)
+        if zooms:
+            out[world] = zooms
+    return out
+
+
 def sync_heads(people):
     """Per-player head images (their default skin) for squaremap's player markers:
     set heads-url in squaremap's config.yml to dashboard/heads/{uuid}.png."""
@@ -806,6 +827,7 @@ def main():
         "progress": progress,
         "sessions": sessions[::-1],
         "first_day": sessions[0]["start"] if sessions else None,
+        "tiles": tile_index(),
     }
     write_atomic(os.path.join(OUT, "data.json"), json.dumps(data, ensure_ascii=False, separators=(",", ":")))
 

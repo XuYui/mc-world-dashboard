@@ -1,0 +1,4 @@
+# File written inside squaremap's web directory
+output: dashboard/health.json
+# How often to sample (seconds); history keeps one sample per minute for an hour
+interval-seconds: 5

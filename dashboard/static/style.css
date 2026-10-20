@@ -294,8 +294,14 @@ h1, h2, .pcard .nm { font-size: 32px; line-height: 36px; }
   #follow .short { display: inline; }
 }
 
-/* death layer buttons, bottom-right of the map */
-#deathbtns { position: absolute; right: 10px; bottom: 14px; z-index: 5; display: flex; gap: 4px; padding: 4px;
+/* map tools, bottom-right of the map: export, then the death layer buttons */
+#maptools { position: absolute; right: 10px; bottom: 14px; z-index: 5; display: flex; gap: 8px; align-items: stretch; }
+#exportbtn { border: 0; cursor: pointer; padding: 6px 12px; color: #d6d6d6; white-space: nowrap;
+  font: 16px/20px "MCPixel", system-ui, sans-serif; -webkit-font-smoothing: none; text-shadow: 2px 2px 0 rgba(0,0,0,.6);
+  background: linear-gradient(rgba(0,0,0,.45), rgba(0,0,0,.45)), url("tex/block/stone_bricks.png") 0 0 / 48px; image-rendering: pixelated;
+  box-shadow: inset 2px 2px 0 rgba(255,255,255,.18), inset -2px -2px 0 rgba(0,0,0,.5), 0 0 0 4px rgba(0,0,0,.55); margin: 4px; }
+#exportbtn:hover { color: #fff; }
+#deathbtns { display: flex; gap: 4px; padding: 4px;
   background: rgba(0,0,0,.55); box-shadow: inset 2px 2px 0 rgba(255,255,255,.1), inset -2px -2px 0 rgba(0,0,0,.5); }
 #deathbtns button { border: 0; cursor: pointer; padding: 6px 12px; color: #d6d6d6; white-space: nowrap;
   font: 16px/20px "MCPixel", system-ui, sans-serif; -webkit-font-smoothing: none; text-shadow: 2px 2px 0 rgba(0,0,0,.6);
@@ -305,3 +311,42 @@ h1, h2, .pcard .nm { font-size: 32px; line-height: 36px; }
 #deathbtns button.on { color: #fff; background: linear-gradient(rgba(60,0,0,.35), rgba(60,0,0,.35)), url("tex/block/nether_bricks.png") 0 0 / 48px;
   box-shadow: inset 2px 2px 0 rgba(255,255,255,.2), inset -2px -2px 0 rgba(0,0,0,.5), 0 0 0 2px #e05555; }
 @media (max-width: 600px) { #deathbtns button { padding: 6px 8px; } }
+
+/* export dialog */
+#exportpanel { position: absolute; right: 10px; bottom: 70px; z-index: 6; width: min(360px, calc(100% - 20px)); }
+#exportpanel.gone { display: none; }
+.ep { padding: 12px 14px; color: #e6e6e6; background: linear-gradient(rgba(10,10,14,.88), rgba(10,10,14,.88)), url("tex/block/polished_blackstone.png") 0 0 / 48px;
+  image-rendering: pixelated; box-shadow: inset 3px 3px 0 rgba(255,255,255,.12), inset -3px -3px 0 rgba(0,0,0,.6), 0 4px 0 rgba(0,0,0,.4); }
+.ep-h { display: flex; justify-content: space-between; align-items: center; font: 16px/20px "MCPixel", system-ui, sans-serif; -webkit-font-smoothing: none; color: #fff; }
+.ep-h .x { border: 0; background: none; color: #ccc; font-size: 22px; cursor: pointer; padding: 0 4px; }
+.ep-k { margin: 10px 0 4px; color: var(--muted); font-size: 13px; }
+.ep .opt { display: flex; gap: 8px; align-items: center; padding: 4px 0; font-size: 14px; cursor: pointer; }
+.ep .opt.off { opacity: .45; cursor: default; }
+.ep .opt .muted { margin-left: auto; font-size: 12px; white-space: nowrap; }
+.ep .go { margin-top: 10px; width: 100%; border: 0; cursor: pointer; padding: 8px; color: #fff;
+  font: 16px/20px "MCPixel", system-ui, sans-serif; -webkit-font-smoothing: none; text-shadow: 2px 2px 0 rgba(0,0,0,.6);
+  background: linear-gradient(rgba(0,0,0,.3), rgba(0,0,0,.3)), url("tex/block/oak_planks.png") 0 0 / 48px;
+  box-shadow: inset 2px 2px 0 rgba(255,255,255,.25), inset -2px -2px 0 rgba(0,0,0,.5), 0 0 0 2px #7ed957; }
+.ep .go:disabled { opacity: .5; cursor: default; }
+.ep-s { margin-top: 8px; font-size: 13px; color: var(--muted); min-height: 1em; }
+@media (pointer: coarse) { .ep .opt { min-height: 40px; } }
+
+/* server health chip and panel */
+.chip.health { cursor: pointer; }
+.chip.health.ok b { color: #8dff6a; }
+.chip.health.warn b { color: #ffcc4d; }
+.chip.health.bad b { color: #ff6b5e; }
+.chip.health.idle b, .chip.health.stale b { color: #b4b4b4; }
+#healthpanel { padding: 4px 16px 12px; }
+#healthpanel.gone { display: none; }
+.hgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; }
+.hcell { background: rgba(0,0,0,.45); padding: 10px 12px; box-shadow: inset 2px 2px 0 rgba(255,255,255,.08), inset -2px -2px 0 rgba(0,0,0,.4); }
+.hk { color: var(--muted); font-size: 12.5px; }
+.hv { font: 16px/22px "MCPixel", system-ui, sans-serif; -webkit-font-smoothing: none; color: #fff; }
+.hn { color: var(--muted); font-size: 12px; margin-top: 2px; }
+.spark { display: block; width: 100%; height: 40px; margin-top: 6px; background: rgba(255,255,255,.04); }
+.spark.empty { height: auto; padding: 10px 0; color: var(--muted); font-size: 12px; text-align: center; }
+.bar { height: 8px; margin-top: 6px; background: #000; box-shadow: 0 0 0 1px rgba(255,255,255,.1); }
+.bar i { display: block; height: 100%; background: #62c3ff; }
+.hfoot { font-size: 12px; margin: 8px 0 0; }
+@media (max-width: 600px) { #healthpanel { padding: 4px 12px 10px; } .hgrid { grid-template-columns: 1fr 1fr; } }

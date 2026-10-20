@@ -1,6 +1,7 @@
 "use strict";
 
 const DATA_URL = "dashboard/data.json";
+const HEALTH_URL = "dashboard/health.json";
 const LIVE_URL = "tiles/players.json";
 const TZ = "Asia/Shanghai";
 const COLORS = ["var(--c0)", "var(--c1)", "var(--c2)", "var(--c3)"];
@@ -231,6 +232,7 @@ function renderStatus() {
     const w = data.clock.weather === "thunder" ? "雷雨" : data.clock.weather === "rain" ? "下雨" : "晴";
     chips.push(`<span class="chip">${clk.night ? "🌙" : "☀️"} <b>第 ${clk.day} 天</b> ${clk.hhmm} · ${w}</span>`);
   }
+  chips.push(healthChip());
   chips.push(`<span class="chip">每天 ${s.restart} 自动重启</span>`);
   setHTML($("#server"), chips.join(""));
 
@@ -491,6 +493,241 @@ document.querySelectorAll("#dims button").forEach((b) => b.addEventListener("cli
   if (!b.classList.contains("on")) showOnMap({ dim: b.dataset.dim });
 }));
 
+// ---------- server health (DashboardHealth plugin) ----------
+
+let health = null;
+let healthOpen = false;
+
+async function loadHealth() {
+  try { health = await getJSON(HEALTH_URL); } catch (e) { health = null; }
+  if (data) renderStatus();
+  if (healthOpen) renderHealth();
+}
+
+function anyoneOnline() {
+  return live ? live.players.length > 0 : !!data?.players.some((p) => p.online_since);
+}
+
+// "ok" | "warn" | "bad" | "idle" | null (no plugin)
+function healthState() {
+  if (!health) return null;
+  if (now() - health.ts / 1000 > 30) return anyoneOnline() ? "stale" : "idle";
+  const tps = health.tps[0];
+  if (tps >= 18 && health.mspt < 45) return "ok";
+  if (tps >= 15) return "warn";
+  return "bad";
+}
+
+function healthChip() {
+  const st = healthState();
+  if (!st) return "";
+  const text = st === "idle" ? "<b>空闲</b> · 无人时服务器暂停"
+    : st === "stale" ? "<b>状态未更新</b>"
+    : `<b>TPS ${health.tps[0].toFixed(1)}</b> · ${Math.round(health.mspt)} ms`;
+  return `<span class="chip health ${st}" role="button" tabindex="0" onclick="toggleHealth()" title="服务器负载，点击查看详情">${text}</span>`;
+}
+
+function toggleHealth() {
+  healthOpen = !healthOpen;
+  $("#healthpanel").classList.toggle("gone", !healthOpen);
+  if (healthOpen) renderHealth();
+}
+window.toggleHealth = toggleHealth;
+
+const gb = (b) => (b / 1073741824).toFixed(2) + " GB";
+
+function sparkline(values, lo, hi, color) {
+  if (values.length < 2) return `<div class="spark empty">数据积累中</div>`;
+  const w = 240, h = 40;
+  const pts = values.map((v, i) => {
+    const x = (i / (values.length - 1)) * w;
+    const y = h - ((Math.min(Math.max(v, lo), hi) - lo) / (hi - lo || 1)) * (h - 4) - 2;
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  }).join(" ");
+  return `<svg class="spark" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none"><polyline points="${pts}" fill="none" stroke="${color}" stroke-width="2" vector-effect="non-scaling-stroke"/></svg>`;
+}
+
+function renderHealth() {
+  const el = $("#healthpanel");
+  if (!health) {
+    setHTML(el, `<div class="wrap muted">没有服务器负载数据（需要 DashboardHealth 插件）。</div>`);
+    return;
+  }
+  const st = healthState();
+  const hist = health.history || [];
+  const mem = health.mem_used / health.mem_max;
+  const note = st === "idle" ? `<p class="muted">没人在线时服务器会暂停运算，下面是 ${fmtAgo(health.ts / 1000)}的数据。</p>`
+    : st === "stale" ? `<p class="muted">负载数据 ${fmtAgo(health.ts / 1000)}更新，插件可能没在运行。</p>` : "";
+  setHTML(el, `<div class="wrap">${note}
+    <div class="hgrid">
+      <div class="hcell"><div class="hk">TPS（1 / 5 / 15 分钟）</div><div class="hv">${health.tps.map((t) => t.toFixed(1)).join(" / ")}</div>
+        ${sparkline(hist.map((x) => x.tps), 10, 20, "#8dff6a")}<div class="hn">满分 20，低于 18 会感觉卡</div></div>
+      <div class="hcell"><div class="hk">每刻耗时</div><div class="hv">${health.mspt.toFixed(1)} ms</div>
+        ${sparkline(hist.map((x) => x.mspt), 0, 60, "#ffcc4d")}<div class="hn">超过 50 ms 就跟不上 20 TPS</div></div>
+      <div class="hcell"><div class="hk">内存（Java 堆）</div><div class="hv">${gb(health.mem_used)} / ${gb(health.mem_max)}</div>
+        <div class="bar"><i style="width:${(mem * 100).toFixed(0)}%"></i></div>
+        ${sparkline(hist.map((x) => x.mem), 0, health.mem_max, "#62c3ff")}</div>
+      <div class="hcell"><div class="hk">CPU</div><div class="hv">服务器 ${health.cpu_process.toFixed(0)}% · 整机 ${health.cpu_system.toFixed(0)}%</div>
+        <div class="hn">${health.cores} 核，100% 表示全部核心占满</div>
+        <div class="hk" style="margin-top:8px">已加载</div><div class="hv">${num(health.chunks)} 区块 · ${num(health.entities)} 实体</div></div>
+    </div>
+    <p class="muted hfoot">图表为最近一小时，每分钟一个点。数据更新于 ${fmtAgo(health.ts / 1000)}。</p></div>`);
+}
+
+// ---------- export the map as an image ----------
+// Stitches squaremap's tiles (tiles/<world>/<zoom>/<x>_<z>.png, 512 px each) on a canvas.
+// At tile zoom z one pixel is 2^(3-z) blocks; zoom 3 is 1:1.
+
+const TILE = 512, MAX_ZOOM = 3;
+const LIMITS = matchMedia("(pointer: coarse)").matches
+  ? { side: 4096, area: 16e6 }    // phones run out of canvas memory much sooner
+  : { side: 8192, area: 50e6 };
+const DIM_LABEL = { "minecraft:overworld": "主世界", "minecraft:the_nether": "下界", "minecraft:the_end": "末地" };
+let exportOpts = { area: "view", zoom: null, footer: true };
+let exporting = false;
+
+// Pixel rectangle (at tile zoom z) to export, or null.
+function exportRect(area, z) {
+  const world = mapDim.replace(":", "_");
+  if (area === "all") {
+    const tiles = data?.tiles?.[world]?.[String(z)] || [];
+    if (!tiles.length) return null;
+    const xs = tiles.map((t) => t[0]), zs = tiles.map((t) => t[1]);
+    return { x0: Math.min(...xs) * TILE, y0: Math.min(...zs) * TILE,
+             x1: (Math.max(...xs) + 1) * TILE, y1: (Math.max(...zs) + 1) * TILE };
+  }
+  let map = null;
+  try { map = $("#map").contentWindow.__sqMap; } catch (e) {}
+  if (!map) return null;
+  const b = map.getBounds();
+  const a = map.project(b.getNorthWest(), z), c = map.project(b.getSouthEast(), z);
+  return { x0: Math.floor(a.x), y0: Math.floor(a.y), x1: Math.ceil(c.x), y1: Math.ceil(c.y) };
+}
+
+function exportChoices(area) {
+  const out = [];
+  for (let z = MAX_ZOOM; z >= 0; z--) {
+    const r = exportRect(area, z);
+    if (!r) continue;
+    const w = r.x1 - r.x0, h = r.y1 - r.y0;
+    const ok = w <= LIMITS.side && h <= LIMITS.side && w * h <= LIMITS.area;
+    out.push({ z, w, h, ok, blocks: 2 ** (MAX_ZOOM - z) });
+  }
+  return out;
+}
+
+function openExport() {
+  $("#exportpanel").classList.remove("gone");
+  renderExport();
+}
+function closeExport() {
+  if (!exporting) $("#exportpanel").classList.add("gone");
+}
+window.openExport = openExport;
+window.closeExport = closeExport;
+
+function renderExport(status = "") {
+  const choices = exportChoices(exportOpts.area);
+  if (!choices.some((c) => c.z === exportOpts.zoom && c.ok)) exportOpts.zoom = choices.find((c) => c.ok)?.z ?? null;
+  const zoomRows = choices.map((c) => `<label class="opt ${c.ok ? "" : "off"}"><input type="radio" name="ez" value="${c.z}"
+      ${c.z === exportOpts.zoom ? "checked" : ""} ${c.ok ? "" : "disabled"}>
+      ${c.blocks === 1 ? "原始清晰度（1 像素 = 1 格）" : `1 像素 = ${c.blocks} 格`}
+      <span class="muted">${c.w} × ${c.h}${c.ok ? "" : " · 太大"}</span></label>`).join("") || `<p class="muted">这个维度还没有地图。</p>`;
+  $("#exportpanel").innerHTML = `<div class="ep">
+    <div class="ep-h">导出地图 · ${DIM_LABEL[mapDim] || mapDim}<button type="button" class="x" onclick="closeExport()" aria-label="关闭">×</button></div>
+    <div class="ep-k">范围</div>
+    <label class="opt"><input type="radio" name="ea" value="view" ${exportOpts.area === "view" ? "checked" : ""}> 当前看到的区域</label>
+    <label class="opt"><input type="radio" name="ea" value="all" ${exportOpts.area === "all" ? "checked" : ""}> 整个已探索区域</label>
+    <div class="ep-k">清晰度</div>${zoomRows}
+    <label class="opt"><input type="checkbox" name="ef" ${exportOpts.footer ? "checked" : ""}> 底部加上存档名、日期和比例</label>
+    <button type="button" class="go" ${exportOpts.zoom === null || exporting ? "disabled" : ""}>${exporting ? "导出中…" : "导出 PNG"}</button>
+    <div class="ep-s">${status}</div></div>`;
+  const panel = $("#exportpanel");
+  panel.querySelectorAll("input[name=ea]").forEach((i) => i.addEventListener("change", () => { exportOpts.area = i.value; renderExport(); }));
+  panel.querySelectorAll("input[name=ez]").forEach((i) => i.addEventListener("change", () => { exportOpts.zoom = +i.value; }));
+  panel.querySelector("input[name=ef]").addEventListener("change", (e) => { exportOpts.footer = e.target.checked; });
+  panel.querySelector(".go").addEventListener("click", runExport);
+}
+
+function loadImage(src) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => resolve(null);  // unexplored tile
+    img.src = src;
+  });
+}
+
+async function runExport() {
+  if (exporting || exportOpts.zoom === null) return;
+  const z = exportOpts.zoom, area = exportOpts.area, dim = mapDim;
+  const r = exportRect(area, z);
+  if (!r) return;
+  exporting = true;
+  const world = dim.replace(":", "_");
+  const w = r.x1 - r.x0, h = r.y1 - r.y0;
+  const footer = exportOpts.footer ? Math.max(32, Math.round(w / 1600) * 32) : 0;
+  const canvas = document.createElement("canvas");
+  canvas.width = w;
+  canvas.height = h + footer;
+  const g = canvas.getContext("2d");
+  g.imageSmoothingEnabled = false;
+  g.fillStyle = "#0b0b0e";
+  g.fillRect(0, 0, canvas.width, canvas.height);
+
+  const tiles = [];
+  for (let ty = Math.floor(r.y0 / TILE); ty * TILE < r.y1; ty++) {
+    for (let tx = Math.floor(r.x0 / TILE); tx * TILE < r.x1; tx++) tiles.push([tx, ty]);
+  }
+  const known = new Set((data?.tiles?.[world]?.[String(z)] || []).map((t) => t.join(",")));
+  const todo = tiles.filter((t) => known.size === 0 || known.has(t.join(",")));
+  let done = 0;
+  const stamp = Date.now();
+  renderExport(`正在拼接 0 / ${todo.length} 块…`);
+  for (let i = 0; i < todo.length; i += 6) {  // a few at a time
+    await Promise.all(todo.slice(i, i + 6).map(async ([tx, ty]) => {
+      const img = await loadImage(`tiles/${world}/${z}/${tx}_${ty}.png?t=${stamp}`);
+      if (img) g.drawImage(img, tx * TILE - r.x0, ty * TILE - r.y0);
+      done++;
+    }));
+    renderExport(`正在拼接 ${done} / ${todo.length} 块…`);
+  }
+
+  const blocks = 2 ** (MAX_ZOOM - z);
+  const bx0 = Math.round(r.x0 * blocks), bz0 = Math.round(r.y0 * blocks);
+  const bx1 = Math.round(r.x1 * blocks), bz1 = Math.round(r.y1 * blocks);
+  if (footer) {
+    await document.fonts.load(`${footer / 2}px MCPixel`).catch(() => {});
+    g.fillStyle = "#16161b";
+    g.fillRect(0, h, w, footer);
+    g.fillStyle = "#e6e6e6";
+    g.font = `${footer / 2}px MCPixel, sans-serif`;
+    g.textBaseline = "middle";
+    const day = new Intl.DateTimeFormat("zh-CN", { timeZone: TZ, year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
+    g.fillText(`${data.title || data.world} · ${DIM_LABEL[dim] || dim} · ${day} · 1 像素 = ${blocks} 格 · X ${bx0} ~ ${bx1} · Z ${bz0} ~ ${bz1}`,
+      footer / 2, h + footer / 2);
+  }
+
+  renderExport("正在生成图片…");
+  canvas.toBlob((blob) => {
+    exporting = false;
+    if (!blob) {
+      renderExport("生成失败：图片太大，换一个低一点的清晰度试试。");
+      return;
+    }
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `${data.world}-${world.replace("minecraft_", "")}-${new Date().toISOString().slice(0, 10)}.png`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 60000);
+    renderExport(`已导出 ${w} × ${h + footer}，${(blob.size / 1048576).toFixed(1)} MB。`);
+  }, "image/png");
+}
+
+$("#exportbtn").addEventListener("click", () => ($("#exportpanel").classList.contains("gone") ? openExport() : closeExport()));
+
 // ---------- death layers (DeathMarkers plugin) ----------
 // Two mutually exclusive buttons drive squaremap's own layer checkboxes inside the map frame:
 // "recent" = each player's latest death, "all" = every recorded death, none = no gravestones.
@@ -542,6 +779,7 @@ setInterval(() => {
   if (ready || Date.now() - mapWaitSince > 15000) hint.classList.add("gone");
 }, 250);
 
-loadData().then(loadLive);
+loadData().then(loadLive).then(loadHealth);
+setInterval(loadHealth, 5000);
 setInterval(loadData, 30000);
 setInterval(loadLive, 3000);
