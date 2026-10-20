@@ -1,0 +1,19 @@
+[Unit]
+Description=World dashboard web server (page, API, map tiles)
+After=network.target
+
+[Service]
+User=minecraft
+Group=minecraft
+UMask=0027
+WorkingDirectory=/opt/mc-dashboard/server
+EnvironmentFile=-/opt/mc-dashboard/dashboard.env
+Environment=PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
+ExecStart=/usr/bin/python3 -m mcdash
+Restart=always
+RestartSec=5
+Nice=5
+MemoryMax=300M
+
+[Install]
+WantedBy=multi-user.target

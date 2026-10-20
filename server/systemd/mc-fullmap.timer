@@ -1,0 +1,9 @@
+[Unit]
+Description=Rebuild full-resolution map images daily
+
+[Timer]
+OnCalendar=*-*-* 04:50:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target

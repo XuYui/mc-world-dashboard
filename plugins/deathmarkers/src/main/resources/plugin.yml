@@ -1,6 +1,0 @@
-name: DeathMarkers
-version: 1.1.0
-main: io.github.xuyui.deathmarkers.DeathMarkersPlugin
-api-version: '26.1'
-depend: [squaremap]
-description: Records every player death and shows it as a gravestone on the squaremap web map.

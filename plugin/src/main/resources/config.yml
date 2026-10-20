@@ -1,0 +1,2 @@
+# How often live.json (online players, server load) is rewritten, in seconds
+live-interval-seconds: 2

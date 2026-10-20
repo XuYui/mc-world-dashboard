@@ -1,0 +1,49 @@
+# Optional: serve the dashboard on your own domain with HTTPS, in front of its web server.
+# Set DASH_BIND=127.0.0.1:8123 in dashboard.env if the port should not be reachable directly.
+# Replace map.example.com and the certificate paths; get a certificate with e.g.
+#   certbot certonly --webroot -w /var/www/mc-acme -d map.example.com
+server {
+    listen 80;
+    listen [::]:80;
+    server_name map.example.com;
+
+    location ^~ /.well-known/acme-challenge/ {
+        root /var/www/mc-acme;
+    }
+
+    location / {
+        return 301 https://$host$request_uri;
+    }
+}
+
+server {
+    listen 443 ssl;
+    listen [::]:443 ssl;
+    server_name map.example.com;
+
+    ssl_certificate /etc/letsencrypt/live/map.example.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/map.example.com/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+
+    add_header X-Content-Type-Options nosniff always;
+    add_header Referrer-Policy strict-origin-when-cross-origin always;
+
+    location / {
+        proxy_pass http://127.0.0.1:8123;   # the dashboard's own web server (it compresses and sets cache headers)
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_http_version 1.1;
+        proxy_set_header Connection "";
+        proxy_connect_timeout 5s;
+        proxy_read_timeout 30s;
+        proxy_intercept_errors on;
+        error_page 502 503 504 = @dashboard_down;
+    }
+
+    location @dashboard_down {
+        default_type text/html;
+        add_header Cache-Control "no-store" always;
+        return 503 "<!doctype html><meta charset=utf-8><meta name=viewport content=\"width=device-width\"><title>offline</title><body style=\"font-family:system-ui;background:#15171c;color:#e8e6e3;text-align:center;padding:60px 16px\"><h2>网站暂时无法访问</h2><p>后台可能正在重启，稍后再刷新试试。</p>";
+    }
+}

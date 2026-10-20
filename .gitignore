@@ -1,10 +1,7 @@
 # Game-derived files (Mojang's textures, skins, strings, font): built locally by tools/build_assets.py
-dashboard/defs.json
-dashboard/static/tex/
-dashboard/static/skins/
-dashboard/static/heads/
-dashboard/static/mcpixel.woff2
-plugins/build/
+server/defs.json
+web/assets/
+plugin/build/
 
 # Your server's connection details
 deploy/config

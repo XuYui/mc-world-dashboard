@@ -1,0 +1,16 @@
+[Unit]
+Description=Stitch full-resolution map images for the world dashboard
+
+[Service]
+Type=oneshot
+User=minecraft
+Group=minecraft
+UMask=0027
+WorkingDirectory=/opt/mc-dashboard/server
+EnvironmentFile=-/opt/mc-dashboard/dashboard.env
+Environment=PYTHONDONTWRITEBYTECODE=1
+ExecStart=/usr/bin/python3 -m mcdash.fullmap
+Nice=19
+IOSchedulingClass=idle
+# libvips streams the image; this is only a safety net next to the game server
+MemoryMax=700M

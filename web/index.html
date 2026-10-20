@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>World</title>
+<link rel="stylesheet" href="vendor/leaflet/leaflet.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header id="top">
+  <div class="bar">
+    <h1 id="site-title">World</h1>
+    <div id="server" class="chips"></div>
+  </div>
+  <div id="online" class="people"></div>
+  <div id="healthpanel" class="gone"></div>
+  <div id="notice" class="gone" role="status"></div>
+  <nav id="tabs">
+    <button data-tab="map" class="on">地图</button>
+    <button data-tab="progress">主线</button>
+    <button data-tab="sessions">联机日志</button>
+    <button data-tab="players">玩家</button>
+  </nav>
+</header>
+<main>
+  <section id="tab-map" class="tab on">
+    <div id="map"></div>
+    <div id="maploading">地图加载中…</div>
+    <div id="follow" class="gone"><span></span><button type="button"><span class="long">取消跟随</span><span class="short">取消</span></button></div>
+    <div id="dims" role="group" aria-label="切换维度">
+      <button data-dim="minecraft:overworld" class="on"><i class="dim" style="background:var(--overworld)"></i>主世界</button>
+      <button data-dim="minecraft:the_nether"><i class="dim" style="background:var(--the_nether)"></i>下界</button>
+      <button data-dim="minecraft:the_end"><i class="dim" style="background:var(--the_end)"></i>末地</button>
+    </div>
+    <div id="coords" class="gone"></div>
+    <div id="gravelist" class="gone"></div>
+    <div id="maptools">
+      <button type="button" id="exportbtn">导出地图</button>
+      <div id="deathbtns" role="group" aria-label="死亡记录">
+        <button type="button" data-mode="recent">最近死亡</button>
+        <button type="button" data-mode="all">历史死亡</button>
+      </div>
+    </div>
+    <div id="exportpanel" class="gone" role="dialog" aria-label="导出地图"></div>
+  </section>
+  <section id="tab-progress" class="tab"></section>
+  <section id="tab-sessions" class="tab"></section>
+  <section id="tab-players" class="tab"></section>
+</main>
+<script src="vendor/leaflet/leaflet.js"></script>
+<script src="app.js"></script>
+<script src="map.js"></script>
+</body>
+</html>

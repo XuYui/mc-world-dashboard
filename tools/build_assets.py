@@ -6,12 +6,11 @@ belong to Mojang, so each user generates them locally from a client they own.
     python tools/build_assets.py --minecraft "C:/Users/me/AppData/Roaming/.minecraft" --version 26.1.2
 
 Outputs (all git-ignored):
-    dashboard/defs.json                 advancement tree, death-message templates, zh_cn names
-    dashboard/static/tex/...            block / item textures used by the page
-    dashboard/static/skins/...          the 18 default player skins
-    dashboard/static/heads/<skin>.png   32x32 face + hat for each default skin
-    dashboard/static/mcpixel.woff2      pixel font subset
-    plugins/build/lang.json             zh_cn strings for death-marker tooltips
+    server/defs.json                    advancement tree, death-message templates, zh_cn names
+    web/assets/tex/...                  block / item textures used by the page
+    web/assets/heads/<skin>.png         32x32 face + hat for each of the 18 default skins
+    web/assets/mcpixel.woff2            pixel font subset
+    plugin/build/lang.json              zh_cn strings for the plugin's death messages
 """
 import argparse
 import glob
@@ -28,8 +27,9 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from buildfont import build_font  # noqa: E402
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DASH = os.path.join(ROOT, "dashboard")
-STATIC = os.path.join(DASH, "static")
+SERVER = os.path.join(ROOT, "server")
+WEB = os.path.join(ROOT, "web")
+ASSETS = os.path.join(WEB, "assets")
 
 TEXTURES = {
     "block": ["deepslate", "dark_oak_planks", "grass_block_side", "spruce_planks", "stone_bricks",
@@ -59,42 +59,38 @@ def main():
     lang = en if args.lang == "en_us" else json.loads(asset("minecraft/lang/%s.json" % args.lang))
 
     defs = build_defs(jar, en, lang)
-    os.makedirs(DASH, exist_ok=True)
-    json.dump(defs, open(os.path.join(DASH, "defs.json"), "w", encoding="utf-8"), ensure_ascii=False)
+    json.dump(defs, open(os.path.join(SERVER, "defs.json"), "w", encoding="utf-8"), ensure_ascii=False)
     print("defs.json: %d advancements, %d death templates" % (len(defs["advancements"]), len(defs["deaths"])))
 
     for kind, names in TEXTURES.items():
-        os.makedirs(os.path.join(STATIC, "tex", kind), exist_ok=True)
+        os.makedirs(os.path.join(ASSETS, "tex", kind), exist_ok=True)
         for n in names:
             src = "assets/minecraft/textures/%s/%s.png" % (kind, n)
-            open(os.path.join(STATIC, "tex", kind, n + ".png"), "wb").write(jar.read(src))
+            open(os.path.join(ASSETS, "tex", kind, n + ".png"), "wb").write(jar.read(src))
 
     skins = [n for n in jar.namelist() if re.match(r"assets/minecraft/textures/entity/player/(slim|wide)/\w+\.png$", n)]
-    os.makedirs(os.path.join(STATIC, "heads"), exist_ok=True)
+    os.makedirs(os.path.join(ASSETS, "heads"), exist_ok=True)
     for n in skins:
         model, name = n.split("/")[-2], n.split("/")[-1]
-        os.makedirs(os.path.join(STATIC, "skins", model), exist_ok=True)
-        data = jar.read(n)
-        open(os.path.join(STATIC, "skins", model, name), "wb").write(data)
-        head(data).save(os.path.join(STATIC, "heads", "%s_%s" % (model, name)))
-    print("skins and heads: %d" % len(skins))
+        head(jar.read(n)).save(os.path.join(ASSETS, "heads", "%s_%s" % (model, name)))
+    print("heads: %d" % len(skins))
 
     # Plugin tooltips: death templates plus every entity / item / block name an argument may use.
     plugin_lang = {k: v for k, v in lang.items() if k.startswith(("death.", "entity.minecraft.", "item.minecraft.", "block.minecraft."))}
-    os.makedirs(os.path.join(ROOT, "plugins", "build"), exist_ok=True)
-    json.dump(plugin_lang, open(os.path.join(ROOT, "plugins", "build", "lang.json"), "w", encoding="utf-8"), ensure_ascii=False)
+    os.makedirs(os.path.join(ROOT, "plugin", "build"), exist_ok=True)
+    json.dump(plugin_lang, open(os.path.join(ROOT, "plugin", "build", "lang.json"), "w", encoding="utf-8"), ensure_ascii=False)
 
     # Font: every character the page can show (game names, page text, generator strings).
     text = "".join(a["title"] for a in defs["advancements"]) + "".join(defs["ids"].values())
     text += "".join(d["zh"] for d in defs["deaths"])
-    for f in glob.glob(os.path.join(STATIC, "*.js")) + glob.glob(os.path.join(STATIC, "*.html")) + [os.path.join(DASH, "gen.py")]:
+    for f in glob.glob(os.path.join(WEB, "*.js")) + glob.glob(os.path.join(WEB, "*.html")) + glob.glob(os.path.join(SERVER, "mcdash", "*.py")):
         text += open(f, encoding="utf-8").read()
     unifont_zip = zipfile.ZipFile(io.BytesIO(asset("minecraft/font/unifont.zip")))
     hexname = next(n for n in unifont_zip.namelist() if n.endswith(".hex"))
-    count = build_font(os.path.join(STATIC, "mcpixel.woff2"), text,
+    count = build_font(os.path.join(ASSETS, "mcpixel.woff2"), text,
                        jar.read("assets/minecraft/textures/font/ascii.png"),
                        unifont_zip.read(hexname).decode("ascii"))
-    print("mcpixel.woff2: %d glyphs, %d bytes" % (count, os.path.getsize(os.path.join(STATIC, "mcpixel.woff2"))))
+    print("mcpixel.woff2: %d glyphs, %d bytes" % (count, os.path.getsize(os.path.join(ASSETS, "mcpixel.woff2"))))
 
 
 def head(skin_png, size=32):

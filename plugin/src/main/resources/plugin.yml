@@ -1,0 +1,5 @@
+name: WorldDashboard
+version: 2.0.0
+main: io.github.xuyui.worlddashboard.WorldDashboardPlugin
+api-version: '26.1'
+description: Feeds the world dashboard with joins, quits, deaths (with positions) and live player and server state.
