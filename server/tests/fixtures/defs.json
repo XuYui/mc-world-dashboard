@@ -1,0 +1,14 @@
+{
+  "advancements": [
+    {"id": "minecraft:story/root", "tab": "story", "parent": null, "title": "Root", "desc": "", "frame": "task", "hidden": false, "icon": "", "depth": 0},
+    {"id": "minecraft:story/mine_stone", "tab": "story", "parent": "minecraft:story/root", "title": "Stone Age", "desc": "Mine stone", "frame": "task", "hidden": false, "icon": "", "depth": 1},
+    {"id": "minecraft:story/mine_diamond", "tab": "story", "parent": "minecraft:story/mine_stone", "title": "Diamonds!", "desc": "Get a diamond", "frame": "task", "hidden": false, "icon": "", "depth": 2}
+  ],
+  "deaths": [
+    {"key": "death.attack.mob", "re": "^(?P<a1>.+?) was slain by (?P<a2>.+?)$", "zh": "%1$s被%2$s杀死了", "len": 22},
+    {"key": "death.fell.accident.generic", "re": "^(?P<a1>.+?) fell from a high place$", "zh": "%1$s从高处摔了下来", "len": 25}
+  ],
+  "names": {"Zombie": "僵尸"},
+  "ids": {"zombie": "僵尸"},
+  "blocks": ["stone", "oak_log"]
+}
