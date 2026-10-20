@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="friends-world-dashboard" content="1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>World</title>
+<link rel="icon" href="favicon.ico">
+<link rel="stylesheet" href="dashboard/style.css">
+</head>
+<body>
+<header id="top">
+  <div class="bar">
+    <h1 id="site-title">World</h1>
+    <div id="server" class="chips"></div>
+  </div>
+  <div id="online" class="people"></div>
+  <nav id="tabs">
+    <button data-tab="map" class="on">地图</button>
+    <button data-tab="progress">主线</button>
+    <button data-tab="sessions">联机日志</button>
+    <button data-tab="players">玩家</button>
+  </nav>
+</header>
+<main>
+  <section id="tab-map" class="tab on"><iframe id="map" title="地图" src="map.html"></iframe><div id="maploading">地图加载中…</div>
+    <div id="follow" class="gone"><span></span><button type="button"><span class="long">取消跟随</span><span class="short">取消</span></button></div>
+    <div id="dims" role="group" aria-label="切换维度">
+      <button data-dim="minecraft:overworld" class="on"><i class="dim" style="background:var(--overworld)"></i>主世界</button>
+      <button data-dim="minecraft:the_nether"><i class="dim" style="background:var(--the_nether)"></i>下界</button>
+      <button data-dim="minecraft:the_end"><i class="dim" style="background:var(--the_end)"></i>末地</button>
+    </div></section>
+  <section id="tab-progress" class="tab"></section>
+  <section id="tab-sessions" class="tab"></section>
+  <section id="tab-players" class="tab"></section>
+</main>
+<script src="dashboard/app.js"></script>
+</body>
+</html>

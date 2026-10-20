@@ -1,0 +1,8 @@
+# Name of the map layer (shown in squaremap's layer list)
+layer-label: 死亡墓碑
+# Hide the layer until a viewer turns it on
+default-hidden: false
+# Gravestone size on the map, in pixels
+icon-size: 20
+# How death times are shown in the tooltip (server timezone)
+time-format: yyyy-MM-dd HH:mm

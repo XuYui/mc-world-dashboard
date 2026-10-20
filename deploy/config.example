@@ -1,0 +1,9 @@
+# Copy to deploy/config (git-ignored) and fill in.
+SSH_TARGET=root@your.server
+SSH_KEY=~/.ssh/id_ed25519
+# Where the dashboard code and its state live on the server
+REMOTE_DIR=/opt/mc-dashboard
+# The Paper server directory (has plugins/, logs/, your save)
+SERVER_DIR=/opt/minecraft
+# The user the Minecraft server runs as
+RUN_AS=minecraft

@@ -1,0 +1,54 @@
+# Optional: serve the dashboard on your own domain with HTTPS (nginx in front of squaremap).
+# Replace map.example.com and the certificate paths; get a certificate with e.g.
+#   certbot certonly --webroot -w /var/www/mc-acme -d map.example.com
+server {
+    listen 80;
+    listen [::]:80;
+    server_name map.example.com;
+
+    location ^~ /.well-known/acme-challenge/ {
+        root /var/www/mc-acme;
+    }
+
+    location / {
+        return 301 https://$host$request_uri;
+    }
+}
+
+server {
+    listen 443 ssl;
+    listen [::]:443 ssl;
+    server_name map.example.com;
+
+    ssl_certificate /etc/letsencrypt/live/map.example.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/map.example.com/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+
+    # squaremap sends js/css/json uncompressed; map tiles are PNG and stay as they are
+    gzip on;
+    gzip_proxied any;
+    gzip_comp_level 5;
+    gzip_min_length 1024;
+    gzip_types text/css application/javascript text/javascript application/json image/svg+xml;
+    gzip_vary on;
+
+    location / {
+        proxy_pass http://127.0.0.1:8123;   # squaremap's internal web server
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_http_version 1.1;
+        proxy_set_header Connection "";
+        proxy_connect_timeout 5s;
+        proxy_read_timeout 30s;
+        proxy_intercept_errors on;
+        error_page 502 503 504 = @mc_down;
+    }
+
+    # shown while the Minecraft server (and so squaremap) is restarting
+    location @mc_down {
+        default_type text/html;
+        add_header Cache-Control "no-store" always;
+        return 503 "<!doctype html><meta charset=utf-8><meta name=viewport content=\"width=device-width\"><title>offline</title><body style=\"font-family:system-ui;background:#15171c;color:#e8e6e3;text-align:center;padding:60px 16px\"><h2>服务器暂时离线</h2><p>可能正在重启，几分钟后再刷新试试。</p>";
+    }
+}

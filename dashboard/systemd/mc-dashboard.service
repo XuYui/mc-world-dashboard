@@ -1,0 +1,13 @@
+[Unit]
+Description=World dashboard data generator (read-only on the save)
+
+[Service]
+Type=oneshot
+User=minecraft
+Group=minecraft
+UMask=0027
+Nice=10
+IOSchedulingClass=idle
+# DASH_* settings (server dir, world, title, timezone, restart time): see dashboard.env.example
+EnvironmentFile=-/opt/mc-dashboard/dashboard.env
+ExecStart=/usr/bin/python3 /opt/mc-dashboard/gen.py
