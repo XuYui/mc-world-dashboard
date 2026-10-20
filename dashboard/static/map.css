@@ -1,0 +1,39 @@
+/* Injected into squaremap's page (map.html) to match the dashboard's block style.
+   Loaded after squaremap's own stylesheet; selectors are prefixed with `html` to win ties. */
+@font-face { font-family: "MCPixel"; src: url("mcpixel.woff2") format("woff2"); font-display: swap; }
+
+/* Removed: the dashboard already has these (status bar, dimension and death buttons). */
+html #sidebar,
+html .leaflet-control-layers:not(.coordinates) { display: none !important; }
+
+/* Zoom buttons: stone bricks */
+html .leaflet-bar { border: 0; border-radius: 0; box-shadow: none; display: flex; flex-direction: column; gap: 4px;
+  background: rgba(0,0,0,.55); padding: 4px; }
+html .leaflet-bar a, html .leaflet-bar a:hover {
+  width: 32px; height: 32px; line-height: 32px; border: 0; border-radius: 0; color: #e6e6e6;
+  font: 32px/32px "MCPixel", system-ui, sans-serif; -webkit-font-smoothing: none; text-shadow: 2px 2px 0 rgba(0,0,0,.6);
+  background: linear-gradient(rgba(0,0,0,.45), rgba(0,0,0,.45)), url("tex/block/stone_bricks.png") 0 0 / 48px;
+  image-rendering: pixelated; box-shadow: inset 2px 2px 0 rgba(255,255,255,.18), inset -2px -2px 0 rgba(0,0,0,.5); }
+html .leaflet-bar a:hover { color: #fff; background: linear-gradient(rgba(0,0,0,.25), rgba(0,0,0,.25)), url("tex/block/stone_bricks.png") 0 0 / 48px; }
+html .leaflet-bar a.leaflet-disabled { color: #777; }
+html .leaflet-touch .leaflet-bar a { width: 36px; height: 36px; line-height: 36px; }
+
+/* Coordinates: dark panel, pixel digits */
+html .leaflet-control-layers.coordinates {
+  border: 0; border-radius: 0; padding: 6px 10px; min-width: 9em; color: #e6e6e6; background: rgba(0,0,0,.65);
+  box-shadow: inset 2px 2px 0 rgba(255,255,255,.1), inset -2px -2px 0 rgba(0,0,0,.5);
+  font: 16px/20px "MCPixel", system-ui, sans-serif; -webkit-font-smoothing: none; text-shadow: 2px 2px 0 rgba(0,0,0,.6); }
+
+/* Player name plates and gravestone tooltips: like the game's floating name tags */
+html .leaflet-tooltip, html .leaflet-popup-content-wrapper {
+  border: 0; border-radius: 0; box-shadow: none; padding: 3px 7px; color: #fff; background: rgba(0,0,0,.6);
+  font: 16px/20px "MCPixel", system-ui, sans-serif; -webkit-font-smoothing: none; text-shadow: 2px 2px 0 rgba(0,0,0,.6); }
+html .leaflet-tooltip b { font-weight: normal; color: #ffcc4d; }
+html .leaflet-tooltip::before, html .leaflet-popup-tip-container { display: none; }
+html .leaflet-popup-content { margin: 6px 8px; font: inherit; }
+html .leaflet-popup-content-wrapper { background: rgba(0,0,0,.75); }
+html .leaflet-container a.leaflet-popup-close-button { color: #ccc; }
+html .leaflet-tooltip img { image-rendering: pixelated; }
+
+/* Touch screens have no cursor, so the coordinates box would only ever show "---". */
+@media (pointer: coarse) { html .leaflet-control-layers.coordinates { display: none !important; } }

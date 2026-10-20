@@ -41,6 +41,10 @@ server {
         proxy_set_header Connection "";
         proxy_connect_timeout 5s;
         proxy_read_timeout 30s;
+        # squaremap sends no cache headers for pages and scripts, so browsers guess and may keep
+        # stale copies after an update; always revalidate (unchanged files cost a 304)
+        proxy_hide_header Cache-Control;
+        add_header Cache-Control "no-cache" always;
         proxy_intercept_errors on;
         error_page 502 503 504 = @mc_down;
     }
@@ -49,6 +53,6 @@ server {
     location @mc_down {
         default_type text/html;
         add_header Cache-Control "no-store" always;
-        return 503 "<!doctype html><meta charset=utf-8><meta name=viewport content=\"width=device-width\"><title>offline</title><body style=\"font-family:system-ui;background:#15171c;color:#e8e6e3;text-align:center;padding:60px 16px\"><h2>·şÎñÆ÷ÔİÊ±ÀëÏß</h2><p>¿ÉÄÜÕıÔÚÖØÆô£¬¼¸·ÖÖÓºóÔÙË¢ĞÂÊÔÊÔ¡£</p>";
+        return 503 "<!doctype html><meta charset=utf-8><meta name=viewport content=\"width=device-width\"><title>offline</title><body style=\"font-family:system-ui;background:#15171c;color:#e8e6e3;text-align:center;padding:60px 16px\"><h2>æœåŠ¡å™¨æš‚æ—¶ç¦»çº¿</h2><p>å¯èƒ½æ­£åœ¨é‡å¯ï¼Œå‡ åˆ†é’Ÿåå†åˆ·æ–°è¯•è¯•ã€‚</p>";
     }
 }

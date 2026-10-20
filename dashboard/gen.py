@@ -6,7 +6,7 @@ writes data.json next to the static page in squaremap's web directory. Runs ever
 from mc-dashboard.timer as the server's user. Settings come from environment variables
 (see dashboard/systemd/mc-dashboard.service).
 """
-import glob, gzip, io, json, os, re, shutil, struct, time
+import glob, gzip, hashlib, io, json, os, re, shutil, struct, time
 from datetime import datetime, timedelta, timezone
 
 ENV = os.environ.get
@@ -656,40 +656,48 @@ def server_clock():
 
 
 ROOT_MARK = b'name="friends-world-dashboard"'
-MAP_HOOK = b'<script src="dashboard/maphook.js"></script>'
+# Tags this script adds to squaremap's page (removed and re-added whenever the files change).
+MAP_TAGS = re.compile(rb'<script src="dashboard/maphook\.js[^"]*"></script>|<link rel="stylesheet" href="dashboard/map\.css[^"]*">')
+
+
+def _versioned(name):
+    """dashboard/<name>?v=<content hash>, so browsers fetch a file again exactly when it changes."""
+    digest = hashlib.md5(open(os.path.join(STATIC, name), "rb").read()).hexdigest()[:10]
+    return ("dashboard/%s?v=%s" % (name, digest)).encode()
+
+
+def _write_if_changed(path, content):
+    if os.path.exists(path) and open(path, "rb").read() == content:
+        return
+    tmp = path + ".tmp"
+    with open(tmp, "wb") as f:
+        f.write(content)
+    os.chmod(tmp, 0o640)
+    os.replace(tmp, path)
 
 
 def sync_root():
     """Serve the dashboard at the web root and keep squaremap's own page as map.html.
 
     squaremap rewrites index.html when it starts (auto-update), so each run moves a
-    fresh squaremap index.html to map.html and puts the dashboard back.
+    fresh squaremap index.html to map.html and puts the dashboard back. map.html gets
+    maphook.js (exposes the Leaflet map for following a player) and map.css (restyles
+    squaremap's controls to match the dashboard).
     """
     web = os.path.dirname(OUT)
     index, mp = os.path.join(web, "index.html"), os.path.join(web, "map.html")
-    ours = open(os.path.join(STATIC, "_root.html"), "rb").read()
     cur = open(index, "rb").read() if os.path.exists(index) else b""
     if cur and ROOT_MARK not in cur:
-        tmp = mp + ".tmp"
-        with open(tmp, "wb") as f:
-            f.write(cur)
-        os.chmod(tmp, 0o640)
-        os.replace(tmp, mp)
-    # Let the dashboard reach squaremap's Leaflet map (used for following a player).
-    if os.path.exists(mp):
-        page = open(mp, "rb").read()
-        if MAP_HOOK not in page and b"<head>" in page:
-            tmp = mp + ".tmp"
-            with open(tmp, "wb") as f:
-                f.write(page.replace(b"<head>", b"<head>" + MAP_HOOK, 1))
-            os.chmod(tmp, 0o640)
-            os.replace(tmp, mp)
-    if cur != ours and os.path.exists(mp):
-        tmp = index + ".tmp"
-        with open(tmp, "wb") as f:
-            f.write(ours)
-        os.chmod(tmp, 0o640)
-        os.replace(tmp, index)
+        _write_if_changed(mp, cur)
+    if not os.path.exists(mp):
+        return
+    page = MAP_TAGS.sub(b"", open(mp, "rb").read())
+    tags = b'<script src="%s"></script><link rel="stylesheet" href="%s">' % (_versioned("maphook.js"), _versioned("map.css"))
+    _write_if_changed(mp, page.replace(b"</head>", tags + b"</head>", 1))
+    ours = open(os.path.join(STATIC, "_root.html"), "rb").read()
+    for name in ("style.css", "app.js"):
+        ours = ours.replace(b'"dashboard/%s"' % name.encode(), b'"%s"' % _versioned(name))
+    _write_if_changed(index, ours)
 
 
 def sync_heads(people):
