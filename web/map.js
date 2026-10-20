@@ -120,7 +120,9 @@ function playerIcon(p) {
     iconSize: [28, 28], iconAnchor: [14, 14],
   });
 }
-const plate = (p) => `<img class="head" src="heads/${esc(p.uuid)}.png" alt="" width="16" height="16">${esc(p.name)}<span class="plate-hp">❤ ${hp(p.health)}</span>`;
+const plate = (p) => `<img class="head" src="heads/${esc(p.uuid)}.png" alt="" width="16" height="16">${esc(p.name)}`
+  + `<span class="stat" title="生命值"><img src="assets/tex/gui/heart.png" alt="生命">${hp(p.health)}</span>`
+  + `<span class="stat" title="盔甲值"><img src="assets/tex/gui/armor.png" alt="盔甲">${p.armor ?? 0}</span>`;
 
 // Turn the arrow the short way round (no full spin when yaw wraps from 179 to -179).
 function aim(marker, yaw) {

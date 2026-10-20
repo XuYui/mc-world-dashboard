@@ -371,7 +371,8 @@ h1, h2, .pcard .nm { font-size: 32px; line-height: 36px; }
 .player-marker .arrow { width: 28px; height: 28px; transition: transform .4s ease-out; filter: drop-shadow(0 0 2px rgba(0,0,0,.8)); }
 .player-marker svg { display: block; }
 .plate .head { width: 16px; height: 16px; vertical-align: -3px; margin-right: 5px; box-shadow: 0 0 0 1px #000; }
-.plate-hp { margin-left: 6px; color: #ff8080; }
+.plate .stat { margin-left: 8px; white-space: nowrap; }
+.plate .stat img { width: 14px; height: 14px; vertical-align: -2px; margin-right: 3px; image-rendering: pixelated; }
 #gravelist { position: absolute; right: 10px; bottom: 70px; display: flex; flex-direction: column; gap: 4px; max-width: calc(100% - 20px); }
 #gravelist.gone { display: none; }
 #gravelist button { border: 0; cursor: pointer; text-align: left; padding: 6px 10px; color: #eee; display: flex; align-items: center; gap: 6px;

@@ -51,7 +51,9 @@ function fmtAgo(ts) {
 const km = (cm) => (cm / 100000).toFixed(1) + " km";
 const num = (n) => Number(n).toLocaleString("zh-CN");
 const gb = (b) => (b / 1073741824).toFixed(2) + " GB";
-const hp = (h) => Number((+h || 0).toFixed(1));  // health arrives as e.g. 17.23
+// Health is a float in the game (damage after armour, regeneration...); the HUD rounds it up to
+// whole half-hearts, so show it the same way.
+const hp = (h) => Math.ceil(+h || 0);
 
 // Player head: the default skin the game gives this UUID (made by the backend).
 const head = (p, size) => `<img class="head" width="${size}" height="${size}" alt="" src="heads/${esc(p?.uuid || "00000000000000000000000000000000")}.png">`;

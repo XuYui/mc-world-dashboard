@@ -7,7 +7,7 @@ belong to Mojang, so each user generates them locally from a client they own.
 
 Outputs (all git-ignored):
     server/defs.json                    advancement tree, death-message templates, zh_cn names
-    web/assets/tex/...                  block / item textures used by the page
+    web/assets/tex/...                  block / item textures and HUD icons used by the page
     web/assets/heads/<skin>.png         32x32 face + hat for each of the 18 default skins
     web/assets/mcpixel.woff2            pixel font subset
     plugin/build/lang.json              zh_cn strings for the plugin's death messages
@@ -36,6 +36,8 @@ TEXTURES = {
               "polished_blackstone", "oak_planks", "bedrock", "obsidian", "nether_bricks", "end_stone"],
     "item": ["wooden_pickaxe", "iron_ingot", "diamond", "flint_and_steel", "blaze_rod", "ender_eye", "dragon_breath"],
 }
+# HUD icons: saved name -> sprite under textures/gui/sprites/
+GUI_SPRITES = {"heart": "hud/heart/full", "armor": "hud/armor_full"}
 LANGS = ("en_us", "zh_cn")
 
 
@@ -67,6 +69,11 @@ def main():
         for n in names:
             src = "assets/minecraft/textures/%s/%s.png" % (kind, n)
             open(os.path.join(ASSETS, "tex", kind, n + ".png"), "wb").write(jar.read(src))
+
+    os.makedirs(os.path.join(ASSETS, "tex", "gui"), exist_ok=True)
+    for name, sprite in GUI_SPRITES.items():
+        data = jar.read("assets/minecraft/textures/gui/sprites/%s.png" % sprite)
+        open(os.path.join(ASSETS, "tex", "gui", name + ".png"), "wb").write(data)
 
     skins = [n for n in jar.namelist() if re.match(r"assets/minecraft/textures/entity/player/(slim|wide)/\w+\.png$", n)]
     os.makedirs(os.path.join(ASSETS, "heads"), exist_ok=True)
