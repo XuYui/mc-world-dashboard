@@ -346,7 +346,7 @@ h1, h2, .pcard .nm { font-size: 32px; line-height: 36px; }
 .hn { color: var(--muted); font-size: 12px; margin-top: 2px; }
 .spark { display: block; width: 100%; height: 40px; margin-top: 6px; background: rgba(255,255,255,.04); }
 .spark.empty { height: auto; padding: 10px 0; color: var(--muted); font-size: 12px; text-align: center; }
-.bar { height: 8px; margin-top: 6px; background: #000; box-shadow: 0 0 0 1px rgba(255,255,255,.1); }
-.bar i { display: block; height: 100%; background: #62c3ff; }
+.hbar { height: 8px; margin-top: 6px; background: #000; box-shadow: 0 0 0 1px rgba(255,255,255,.1); }
+.hbar i { display: block; height: 100%; background: #62c3ff; }
 .hfoot { font-size: 12px; margin: 8px 0 0; }
 @media (max-width: 600px) { #healthpanel { padding: 4px 12px 10px; } .hgrid { grid-template-columns: 1fr 1fr; } }

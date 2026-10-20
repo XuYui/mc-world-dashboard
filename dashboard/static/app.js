@@ -565,7 +565,7 @@ function renderHealth() {
       <div class="hcell"><div class="hk">每刻耗时</div><div class="hv">${health.mspt.toFixed(1)} ms</div>
         ${sparkline(hist.map((x) => x.mspt), 0, 60, "#ffcc4d")}<div class="hn">超过 50 ms 就跟不上 20 TPS</div></div>
       <div class="hcell"><div class="hk">内存（Java 堆）</div><div class="hv">${gb(health.mem_used)} / ${gb(health.mem_max)}</div>
-        <div class="bar"><i style="width:${(mem * 100).toFixed(0)}%"></i></div>
+        <div class="hbar"><i style="width:${(mem * 100).toFixed(0)}%"></i></div>
         ${sparkline(hist.map((x) => x.mem), 0, health.mem_max, "#62c3ff")}</div>
       <div class="hcell"><div class="hk">CPU</div><div class="hv">服务器 ${health.cpu_process.toFixed(0)}% · 整机 ${health.cpu_system.toFixed(0)}%</div>
         <div class="hn">${health.cores} 核，100% 表示全部核心占满</div>
