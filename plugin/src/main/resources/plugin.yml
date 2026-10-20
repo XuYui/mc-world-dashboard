@@ -1,5 +1,5 @@
 name: DeathMarkers
-version: 1.0.0
+version: 1.1.0
 main: io.github.xuyui.deathmarkers.DeathMarkersPlugin
 api-version: '26.1'
 depend: [squaremap]

@@ -25,6 +25,10 @@
 <main>
   <section id="tab-map" class="tab on"><iframe id="map" title="地图" src="map.html"></iframe><div id="maploading">地图加载中…</div>
     <div id="follow" class="gone"><span></span><button type="button"><span class="long">取消跟随</span><span class="short">取消</span></button></div>
+    <div id="deathbtns" role="group" aria-label="死亡记录">
+      <button type="button" data-mode="recent">最近死亡</button>
+      <button type="button" data-mode="all">历史死亡</button>
+    </div>
     <div id="dims" role="group" aria-label="切换维度">
       <button data-dim="minecraft:overworld" class="on"><i class="dim" style="background:var(--overworld)"></i>主世界</button>
       <button data-dim="minecraft:the_nether"><i class="dim" style="background:var(--the_nether)"></i>下界</button>

@@ -46,12 +46,14 @@ import xyz.jpenilla.squaremap.api.marker.Marker;
 import xyz.jpenilla.squaremap.api.marker.MarkerOptions;
 
 /**
- * Records every player death (time, position, message) to deaths.json and shows each one
- * as a gravestone on the squaremap web map.
+ * Records every player death (time, position, message) to deaths.json and shows them as
+ * gravestones on the squaremap web map, in two layers: every recorded death, and only each
+ * player's most recent one.
  */
 public final class DeathMarkersPlugin extends JavaPlugin implements Listener {
     private static final Key ICON = Key.of("deathmarkers_grave");
-    private static final Key LAYER = Key.of("deathmarkers");
+    private static final Key LAYER_ALL = Key.of("deathmarkers");
+    private static final Key LAYER_RECENT = Key.of("deathmarkers_recent");
     private static final Pattern ARG = Pattern.compile("%(?:(\\d+)\\$)?s|%%");
 
     /** One recorded death. Field names are the JSON format read by the dashboard. */
@@ -68,7 +70,9 @@ public final class DeathMarkersPlugin extends JavaPlugin implements Listener {
 
     private final Gson gson = new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create();
     private final List<Grave> graves = new ArrayList<>();
-    private final Map<String, SimpleLayerProvider> layers = new HashMap<>();
+    private final Map<String, SimpleLayerProvider> allLayers = new HashMap<>();     // world key -> layer
+    private final Map<String, SimpleLayerProvider> recentLayers = new HashMap<>();
+    private final Map<String, Grave> latest = new HashMap<>();                       // player uuid -> last death
     private Map<String, String> lang = Map.of();
     private Path file;
     private DateTimeFormatter timeFormat;
@@ -87,14 +91,9 @@ public final class DeathMarkersPlugin extends JavaPlugin implements Listener {
         Squaremap api = SquaremapProvider.get();
         api.iconRegistry().register(ICON, gravestone());
         for (MapWorld world : api.mapWorlds()) {
-            SimpleLayerProvider layer = SimpleLayerProvider.builder(getConfig().getString("layer-label", "Deaths"))
-                .showControls(true)
-                .defaultHidden(getConfig().getBoolean("default-hidden", false))
-                .layerPriority(5)
-                .zIndex(5)
-                .build();
-            world.layerRegistry().register(LAYER, layer);
-            layers.put(world.identifier().asString(), layer);
+            String id = world.identifier().asString();
+            allLayers.put(id, register(world, LAYER_ALL, getConfig().getString("layer-label", "All deaths"), 5));
+            recentLayers.put(id, register(world, LAYER_RECENT, getConfig().getString("recent-layer-label", "Latest deaths"), 6));
         }
         for (Grave g : graves) {
             addMarker(g);
@@ -108,8 +107,10 @@ public final class DeathMarkersPlugin extends JavaPlugin implements Listener {
         try {
             Squaremap api = SquaremapProvider.get();
             for (MapWorld world : api.mapWorlds()) {
-                if (world.layerRegistry().hasEntry(LAYER)) {
-                    world.layerRegistry().unregister(LAYER);
+                for (Key layer : List.of(LAYER_ALL, LAYER_RECENT)) {
+                    if (world.layerRegistry().hasEntry(layer)) {
+                        world.layerRegistry().unregister(layer);
+                    }
                 }
             }
             if (api.iconRegistry().hasEntry(ICON)) {
@@ -118,7 +119,20 @@ public final class DeathMarkersPlugin extends JavaPlugin implements Listener {
         } catch (IllegalStateException ignored) {
             // squaremap already shut down
         }
-        layers.clear();
+        allLayers.clear();
+        recentLayers.clear();
+        latest.clear();
+    }
+
+    private SimpleLayerProvider register(MapWorld world, Key key, String label, int priority) {
+        SimpleLayerProvider layer = SimpleLayerProvider.builder(label)
+            .showControls(true)
+            .defaultHidden(getConfig().getBoolean("default-hidden", true))
+            .layerPriority(priority)
+            .zIndex(5)
+            .build();
+        world.layerRegistry().register(key, layer);
+        return layer;
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
@@ -142,16 +156,31 @@ public final class DeathMarkersPlugin extends JavaPlugin implements Listener {
     }
 
     private void addMarker(Grave g) {
-        SimpleLayerProvider layer = layers.get(g.world);
-        if (layer == null) {
-            return;  // world not shown on the map
+        Icon icon = gravestoneMarker(g);
+        String player = g.uuid.replace("-", "");
+        SimpleLayerProvider all = allLayers.get(g.world);
+        if (all != null) {
+            all.addMarker(Key.of("grave_" + g.ts + "_" + player), icon);
         }
+        Grave prev = latest.get(g.uuid);
+        if (prev == null || prev.ts <= g.ts) {
+            latest.put(g.uuid, g);
+            Key key = Key.of("latest_" + player);
+            recentLayers.values().forEach(layer -> layer.removeMarker(key));  // the old one may be in another world
+            SimpleLayerProvider recent = recentLayers.get(g.world);
+            if (recent != null) {
+                recent.addMarker(key, gravestoneMarker(g));
+            }
+        }
+    }
+
+    private Icon gravestoneMarker(Grave g) {
         String tooltip = "<b>" + html(g.name) + "</b><br>" + html(g.message) + "<br>"
             + html(timeFormat.format(Instant.ofEpochMilli(g.ts)))
             + String.format(Locale.ROOT, " · (%d, %d, %d)", Math.round(g.x), Math.round(g.y), Math.round(g.z));
         Icon icon = Marker.icon(Point.of(g.x, g.z), ICON, iconSize);
         icon.markerOptions(MarkerOptions.builder().hoverTooltip(tooltip).clickTooltip(tooltip));
-        layer.addMarker(Key.of("grave_" + g.ts + "_" + g.uuid.replace("-", "")), icon);
+        return icon;
     }
 
     // ---------- storage ----------

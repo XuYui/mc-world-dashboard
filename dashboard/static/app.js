@@ -491,6 +491,47 @@ document.querySelectorAll("#dims button").forEach((b) => b.addEventListener("cli
   if (!b.classList.contains("on")) showOnMap({ dim: b.dataset.dim });
 }));
 
+// ---------- death layers (DeathMarkers plugin) ----------
+// Two mutually exclusive buttons drive squaremap's own layer checkboxes inside the map frame:
+// "recent" = each player's latest death, "all" = every recorded death, none = no gravestones.
+// The two entries are hidden in squaremap's layer list so the buttons stay the only switch.
+
+const DEATH_LAYERS = { all: "deathmarkers", recent: "deathmarkers_recent" };
+let deathMode = null;
+const layerNames = {};  // world -> { layer id: label shown in squaremap's layer list }
+
+async function deathLayerNames(world) {
+  if (!layerNames[world]) {
+    layerNames[world] = getJSON(`tiles/${world}/markers.json`)
+      .then((layers) => Object.fromEntries(layers.map((l) => [l.id, l.name])))
+      .catch(() => { delete layerNames[world]; return {}; });
+  }
+  return layerNames[world];
+}
+
+async function syncDeathLayers() {
+  let doc;
+  try { doc = $("#map").contentDocument; } catch (e) { return; }
+  const labels = doc ? [...doc.querySelectorAll(".leaflet-control-layers-overlays label")] : [];
+  if (!labels.length) return;
+  const names = await deathLayerNames(mapDim.replace(":", "_"));
+  for (const [mode, id] of Object.entries(DEATH_LAYERS)) {
+    const label = labels.find((l) => l.textContent.trim() === names[id]);
+    if (!label) continue;
+    label.style.display = "none";
+    const box = label.querySelector("input");
+    if (box && box.checked !== (deathMode === mode)) box.click();
+  }
+}
+
+function setDeathMode(mode) {
+  deathMode = deathMode === mode ? null : mode;
+  document.querySelectorAll("#deathbtns button").forEach((b) => b.classList.toggle("on", b.dataset.mode === deathMode));
+  syncDeathLayers();
+}
+document.querySelectorAll("#deathbtns button").forEach((b) => b.addEventListener("click", () => setDeathMode(b.dataset.mode)));
+setInterval(syncDeathLayers, 1000);  // re-apply after the map reloads (dimension switch, follow)
+
 // Hide the loading hint as soon as squaremap has drawn its first tile (or after 15 s regardless).
 let mapWaitSince = Date.now();
 setInterval(() => {

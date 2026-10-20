@@ -293,3 +293,15 @@ h1, h2, .pcard .nm { font-size: 32px; line-height: 36px; }
   #follow .long { display: none; }
   #follow .short { display: inline; }
 }
+
+/* death layer buttons, bottom-right of the map */
+#deathbtns { position: absolute; right: 10px; bottom: 14px; z-index: 5; display: flex; gap: 4px; padding: 4px;
+  background: rgba(0,0,0,.55); box-shadow: inset 2px 2px 0 rgba(255,255,255,.1), inset -2px -2px 0 rgba(0,0,0,.5); }
+#deathbtns button { border: 0; cursor: pointer; padding: 6px 12px; color: #d6d6d6; white-space: nowrap;
+  font: 16px/20px "MCPixel", system-ui, sans-serif; -webkit-font-smoothing: none; text-shadow: 2px 2px 0 rgba(0,0,0,.6);
+  background: linear-gradient(rgba(0,0,0,.45), rgba(0,0,0,.45)), url("tex/block/stone_bricks.png") 0 0 / 48px; image-rendering: pixelated;
+  box-shadow: inset 2px 2px 0 rgba(255,255,255,.18), inset -2px -2px 0 rgba(0,0,0,.5); }
+#deathbtns button:hover { color: #fff; }
+#deathbtns button.on { color: #fff; background: linear-gradient(rgba(60,0,0,.35), rgba(60,0,0,.35)), url("tex/block/nether_bricks.png") 0 0 / 48px;
+  box-shadow: inset 2px 2px 0 rgba(255,255,255,.2), inset -2px -2px 0 rgba(0,0,0,.5), 0 0 0 2px #e05555; }
+@media (max-width: 600px) { #deathbtns button { padding: 6px 8px; } }
