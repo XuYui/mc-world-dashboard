@@ -641,12 +641,21 @@ function renderExport(status = "") {
     <div class="ep-k">清晰度</div>${zoomRows}
     <label class="opt"><input type="checkbox" name="ef" ${exportOpts.footer ? "checked" : ""}> 底部加上存档名、日期和比例</label>
     <button type="button" class="go" ${exportOpts.zoom === null || exporting ? "disabled" : ""}>${exporting ? "导出中…" : "导出 PNG"}</button>
-    <div class="ep-s">${status}</div></div>`;
+    <div class="ep-s">${status}</div>${fullmapLink()}</div>`;
   const panel = $("#exportpanel");
   panel.querySelectorAll("input[name=ea]").forEach((i) => i.addEventListener("change", () => { exportOpts.area = i.value; renderExport(); }));
   panel.querySelectorAll("input[name=ez]").forEach((i) => i.addEventListener("change", () => { exportOpts.zoom = +i.value; }));
   panel.querySelector("input[name=ef]").addEventListener("change", (e) => { exportOpts.footer = e.target.checked; });
   panel.querySelector(".go").addEventListener("click", runExport);
+}
+
+// Full-resolution image of the whole dimension, stitched on the server every night (fullmap.py).
+function fullmapLink() {
+  const f = data?.fullmap?.[mapDim.replace(":", "_")];
+  if (!f) return "";
+  return `<div class="ep-full"><div class="ep-k">原清晰度完整地图（服务器每天凌晨生成）</div>
+    <a class="dl" href="${f.file}?v=${f.ts}" download>下载 ${f.width} × ${f.height} · ${(f.bytes / 1048576).toFixed(1)} MB</a>
+    <div class="muted">生成于 ${fmtDateTime(f.ts)} · 1 像素 = 1 格 · X ${f.x[0]} ~ ${f.x[1]} · Z ${f.z[0]} ~ ${f.z[1]}</div></div>`;
 }
 
 function loadImage(src) {

@@ -14,12 +14,14 @@
 - **联机日志**：按上下线时间自动切分每次游玩（断线 15 分钟内算同一次），列出参与者、时长、新成就（标出全队首次）、死亡记录；装了插件后每次死亡都能一键跳到地图上的位置。
 - **玩家**：战斗 / 挖矿 / 建造 / 探索 / 生存 / 农业厨艺六维雷达图（可切换「每小时」看风格或「总量」看贡献），以及约 55 种自动称号（伐木工、铁匠、钻石大亨、拆弹专家、船长……），每个称号写明依据。
 - **墓碑插件（DeathMarkers）**：记录每次死亡的时间、坐标和死亡消息，在 squaremap 上以墓碑图层显示。
+- **导出地图**：在浏览器里把当前视野或整个已探索区域拼成 PNG（可选比例、可加存档名和坐标说明）；原清晰度的完整地图太大，由服务器每天凌晨用 libvips 拼好，面板里直接下载。
+- **服务器负载（DashboardHealth）**：状态栏显示 TPS 和每刻耗时，点开有内存、CPU、区块、实体和最近一小时曲线。
 - 方块材质风格的界面，标题和数字用游戏同款像素字体；手机、平板可用。
 
 ## 要求
 
 - Paper 26.1.x 服务器（测试于 26.1.2），装有 squaremap 并开启其内置网页服务器
-- 服务器上有 Python 3.9+ 和 systemd；插件需要 JDK 25 来编译
+- 服务器上有 Python 3.9+ 和 systemd；插件需要 JDK 25 来编译；原清晰度地图需要 `vips` 命令（`apt install --no-install-recommends libvips-tools`，可选）
 - 一台装有同版本 Minecraft 客户端的电脑，用来生成游戏资源（见下）
 - 正版或离线模式均可；离线模式下头像使用游戏按 UUID 分配的默认皮肤
 
@@ -55,6 +57,7 @@ DeathMarkers 的 deaths.json                       ─┘                       
 squaremap 实时 players.json ───────────────────────────────── 网页（同源）←──────┘
 ```
 
+- `dashboard/fullmap.py`：每天 04:50（`mc-fullmap.timer`）把每个维度的原清晰度图块拼成一张 PNG；libvips 按条带流式处理，内存占用很小。
 - `dashboard/gen.py`：数据生成脚本，只用 Python 标准库。服务器日志会被复制一份到 `state/logs/`，以免服务器清理旧日志后联机记录丢失。
 - `dashboard/static/`：网页（无框架、无构建步骤）。`maphook.js` 被注入 squaremap 页面，用来拿到它的 Leaflet 地图以实现跟随。
 - `plugins/`：两个可选插件。DeathMarkers 记录死亡并画墓碑；DashboardHealth 每 5 秒把 TPS、每刻耗时、内存和 CPU 写进 `dashboard/health.json`，状态栏会显示。`build.sh` 直接用服务器自带的库编译，不需要 Gradle。

@@ -24,7 +24,7 @@ with_plugin=false
 
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
-tar -czf "$tmp/dash.tgz" -C dashboard gen.py seed_graves.py defs.json dashboard.env.example static systemd
+tar -czf "$tmp/dash.tgz" -C dashboard gen.py seed_graves.py fullmap.py defs.json dashboard.env.example static systemd
 files=(dash.tgz)
 if $with_plugin; then
     [[ -f plugins/build/lang.json ]] || { echo "missing plugins/build/lang.json: run tools/build_assets.py" >&2; exit 1; }
@@ -39,7 +39,7 @@ mkdir -p "$REMOTE_DIR/state"
 rm -rf "$REMOTE_DIR/static.new"
 tar -xzf /tmp/dash.tgz -C "$REMOTE_DIR" --transform 's,^static,static.new,'
 rm -rf "$REMOTE_DIR/static" && mv "$REMOTE_DIR/static.new" "$REMOTE_DIR/static"
-for unit in mc-dashboard.service mc-dashboard.timer; do
+for unit in mc-dashboard.service mc-dashboard.timer mc-fullmap.service mc-fullmap.timer; do
     if ! cmp -s "$REMOTE_DIR/systemd/$unit" "/etc/systemd/system/$unit"; then
         cp "$REMOTE_DIR/systemd/$unit" /etc/systemd/system/
         systemctl daemon-reload
@@ -48,6 +48,7 @@ done
 chown -R "$RUN_AS:$RUN_AS" "$REMOTE_DIR"
 find "$REMOTE_DIR" -type d -exec chmod 750 {} + && find "$REMOTE_DIR" -type f -exec chmod 640 {} +
 systemctl enable --now mc-dashboard.timer >/dev/null
+command -v vips >/dev/null && systemctl enable --now mc-fullmap.timer >/dev/null
 systemctl start mc-dashboard.service
 echo "dashboard deployed"
 

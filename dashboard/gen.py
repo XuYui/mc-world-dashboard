@@ -828,6 +828,7 @@ def main():
         "sessions": sessions[::-1],
         "first_day": sessions[0]["start"] if sessions else None,
         "tiles": tile_index(),
+        "fullmap": load_json(os.path.join(OUT, "fullmap", "index.json"), {}),  # made by fullmap.py
     }
     write_atomic(os.path.join(OUT, "data.json"), json.dumps(data, ensure_ascii=False, separators=(",", ":")))
 

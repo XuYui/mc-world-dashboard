@@ -350,3 +350,12 @@ h1, h2, .pcard .nm { font-size: 32px; line-height: 36px; }
 .hbar i { display: block; height: 100%; background: #62c3ff; }
 .hfoot { font-size: 12px; margin: 8px 0 0; }
 @media (max-width: 600px) { #healthpanel { padding: 4px 12px 10px; } .hgrid { grid-template-columns: 1fr 1fr; } }
+
+/* server-made full-resolution download inside the export dialog */
+.ep-full { margin-top: 12px; padding-top: 10px; border-top: 2px solid rgba(255,255,255,.08); }
+.ep-full .dl { display: block; text-align: center; padding: 8px; color: #fff; text-decoration: none;
+  font: 16px/20px "MCPixel", system-ui, sans-serif; -webkit-font-smoothing: none; text-shadow: 2px 2px 0 rgba(0,0,0,.6);
+  background: linear-gradient(rgba(0,0,0,.45), rgba(0,0,0,.45)), url("tex/block/stone_bricks.png") 0 0 / 48px; image-rendering: pixelated;
+  box-shadow: inset 2px 2px 0 rgba(255,255,255,.18), inset -2px -2px 0 rgba(0,0,0,.5); }
+.ep-full .dl:hover { color: #ffffa0; }
+.ep-full .muted { font-size: 12px; margin-top: 4px; }
