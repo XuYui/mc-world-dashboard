@@ -51,5 +51,12 @@ class Sessions(unittest.TestCase):
         self.assertEqual(sessions, [])
 
 
+class Killers(unittest.TestCase):
+    def test_killer_is_read_back_from_plugin_messages(self):
+        from mcdash.gamedata import killer_from_message
+        self.assertEqual(killer_from_message("alex被僵尸杀死了", {"alex"}), "僵尸")
+        self.assertIsNone(killer_from_message("alex从高处摔了下来", {"alex"}))
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -51,6 +51,7 @@ function fmtAgo(ts) {
 const km = (cm) => (cm / 100000).toFixed(1) + " km";
 const num = (n) => Number(n).toLocaleString("zh-CN");
 const gb = (b) => (b / 1073741824).toFixed(2) + " GB";
+const hp = (h) => Number((+h || 0).toFixed(1));  // health arrives as e.g. 17.23
 
 // Player head: the default skin the game gives this UUID (made by the backend).
 const head = (p, size) => `<img class="head" width="${size}" height="${size}" alt="" src="heads/${esc(p?.uuid || "00000000000000000000000000000000")}.png">`;
@@ -172,8 +173,8 @@ function renderStatus() {
         ${head(p, 30)}
         <div class="who"><span class="name">${esc(p.name)}</span>
           <span class="sub"><i class="dim" style="background:var(--${lp.world.split(":")[1]})"></i>${DIM_NAME[lp.world] || esc(lp.world)} · ${since}</span>
-          <span class="vitals" title="生命 ${lp.health}/20 · 饱食度 ${lp.food}/20">
-            <span class="meter hp"><i style="width:${(lp.health / 20) * 100}%"></i></span>${lp.health}
+          <span class="vitals" title="生命 ${hp(lp.health)}/20 · 饱食度 ${lp.food}/20">
+            <span class="meter hp"><i style="width:${(lp.health / 20) * 100}%"></i></span>${hp(lp.health)}
             <span class="meter food"><i style="width:${(lp.food / 20) * 100}%"></i></span>${lp.food}
           </span></div></div>`;
     }

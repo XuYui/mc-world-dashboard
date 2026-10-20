@@ -367,7 +367,10 @@ h1, h2, .pcard .nm { font-size: 32px; line-height: 36px; }
 #coords { position: absolute; left: 10px; bottom: 14px; z-index: 500; pointer-events: none; }
 #coords.gone { display: none; }
 #dims, #follow, #maptools, #exportpanel, #maploading, #gravelist { z-index: 500; }
-.player-marker .head { box-shadow: 0 0 0 2px #000, 0 0 0 4px rgba(255,255,255,.6); border-radius: 0; }
+.player-marker { cursor: pointer; }
+.player-marker .arrow { width: 28px; height: 28px; transition: transform .4s ease-out; filter: drop-shadow(0 0 2px rgba(0,0,0,.8)); }
+.player-marker svg { display: block; }
+.plate .head { width: 16px; height: 16px; vertical-align: -3px; margin-right: 5px; box-shadow: 0 0 0 1px #000; }
 .plate-hp { margin-left: 6px; color: #ff8080; }
 #gravelist { position: absolute; right: 10px; bottom: 70px; display: flex; flex-direction: column; gap: 4px; max-width: calc(100% - 20px); }
 #gravelist.gone { display: none; }

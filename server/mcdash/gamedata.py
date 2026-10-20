@@ -40,6 +40,35 @@ SKINS = ["slim/alex", "slim/ari", "slim/efe", "slim/kai", "slim/makena", "slim/n
          "wide/sunny", "wide/zuri"]
 
 
+def _template_re(template):
+    """'%1$s被%2$s杀死了' -> regex with groups a1, a2, ... (to read the killer back out of a message)."""
+    out, pos = "", 0
+    for part in re.split(r"(%(?:\d\$)?s)", template):
+        m = re.fullmatch(r"%(?:(\d)\$)?s", part)
+        if m:
+            pos += 1
+            out += "(?P<a%d>.+?)" % (int(m.group(1)) if m.group(1) else pos)
+        else:
+            out += re.escape(part)
+    return re.compile("^" + out + "$")
+
+
+# Localized death templates, longest first so the most specific one matches.
+LOCAL_DEATHS = [_template_re(d["zh"]) for d in sorted(DEFS["deaths"], key=lambda d: -len(d["zh"]))]
+KILLER_NAMES = set(NAMES.values())
+
+
+def killer_from_message(message, players):
+    """The mob or player in a localized death message, e.g. 'alex被僵尸杀死了' -> '僵尸'."""
+    for rx in LOCAL_DEATHS:
+        m = rx.match(message)
+        if m and "a2" in m.groupdict():
+            k = m.group("a2")
+            if k in KILLER_NAMES or k in players:
+                return k
+    return None
+
+
 def zh_name(s):
     return NAMES.get(s, s)
 

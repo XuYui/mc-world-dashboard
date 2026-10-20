@@ -4,7 +4,7 @@ import os
 import time
 
 from . import config, saves
-from .gamedata import ADV, DEFS, MAINLINE, zh_id
+from .gamedata import ADV, DEFS, MAINLINE, killer_from_message, zh_id
 from .titles import titles
 from .util import load_json, write_atomic
 
@@ -48,8 +48,10 @@ def death_list(events, names):
     for e in events:
         if e["type"] != "death" or e.get("level") != config.SAVE or e.get("name") not in names:
             continue
-        d = {"ts": int(e["ts"]), "name": e["name"], "text": e["data"].get("message") or e["name"],
-             "killer": e["data"].get("killer")}
+        text = e["data"].get("message") or e["name"]
+        # the plugin sends only the message; read the killer back out of it like the log importer does
+        d = {"ts": int(e["ts"]), "name": e["name"], "text": text,
+             "killer": e["data"].get("killer") or killer_from_message(text, names)}
         if e.get("x") is not None:
             d["where"] = {"dim": e["world"], "pos": [round(e["x"]), round(e["y"]), round(e["z"])]}
         out.append(d)

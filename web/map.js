@@ -104,14 +104,34 @@ const playerLayer = L.layerGroup().addTo(map);
 const playerMarkers = new Map();
 let lastPlayers = [];
 
+// Players are arrows pointing where they face, coloured like their radar chart; the name tag
+// carries their head. Minecraft yaw: 0 = south (+Z, down on the map), 90 = west, 180 = north,
+// -90 = east; the arrow is drawn pointing north, so it turns by yaw + 180 degrees clockwise.
+function playerColor(p) {
+  const i = (data?.players || []).findIndex((x) => x.uuid === p.uuid);
+  return COLORS[(i < 0 ? 0 : i) % COLORS.length];
+}
+
 function playerIcon(p) {
   return L.divIcon({
     className: "player-marker",
-    html: `<img class="head" src="heads/${esc(p.uuid)}.png" alt="" width="24" height="24">`,
-    iconSize: [24, 24], iconAnchor: [12, 12],
+    html: `<div class="arrow" style="--c:${playerColor(p)}"><svg viewBox="0 0 16 16" width="28" height="28" shape-rendering="crispEdges">
+      <polygon points="8,1 14,14 8,10 2,14" fill="var(--c)" stroke="#000" stroke-width="1.2" stroke-linejoin="miter"/></svg></div>`,
+    iconSize: [28, 28], iconAnchor: [14, 14],
   });
 }
-const plate = (p) => `${esc(p.name)}<span class="plate-hp">❤ ${p.health}</span>`;
+const plate = (p) => `<img class="head" src="heads/${esc(p.uuid)}.png" alt="" width="16" height="16">${esc(p.name)}<span class="plate-hp">❤ ${hp(p.health)}</span>`;
+
+// Turn the arrow the short way round (no full spin when yaw wraps from 179 to -179).
+function aim(marker, yaw) {
+  const el = marker.getElement()?.querySelector(".arrow");
+  if (!el) return;
+  const target = (yaw ?? 0) + 180;
+  const prev = marker._angle ?? target;
+  const angle = prev + ((((target - prev) % 360) + 540) % 360) - 180;
+  marker._angle = angle;
+  el.style.transform = `rotate(${angle}deg)`;
+}
 
 function drawPlayers(players) {
   lastPlayers = players;
@@ -122,7 +142,7 @@ function drawPlayers(players) {
     let m = playerMarkers.get(p.uuid);
     if (!m) {
       m = L.marker(toLatLng(p.x, p.z), { icon: playerIcon(p), zIndexOffset: 1000 })
-        .bindTooltip(plate(p), { permanent: true, direction: "top", offset: [0, -12], className: "plate" })
+        .bindTooltip(plate(p), { permanent: true, direction: "top", offset: [0, -16], className: "plate" })
         .on("click", () => followPlayer(p.uuid));
       m.addTo(playerLayer);
       playerMarkers.set(p.uuid, m);
@@ -130,6 +150,7 @@ function drawPlayers(players) {
       m.setLatLng(toLatLng(p.x, p.z));
       m.setTooltipContent(plate(p));
     }
+    aim(m, p.yaw);
   }
   for (const [id, m] of playerMarkers) {
     if (!seen.has(id)) {
