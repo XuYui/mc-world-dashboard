@@ -21,7 +21,6 @@ let liveResp = null;      // /api/live
 let liveOkAt = Date.now();
 let sessions = [];        // loaded pages of /api/sessions, newest first
 let sessionsTotal = 0;
-let perHour = true;
 let healthOpen = false;
 
 const $ = (s, el = document) => el.querySelector(s);
@@ -328,7 +327,7 @@ const AXES = [
 
 function radarScores() {
   const ps = data.players;
-  const val = (p, k) => (perHour ? p.stats[k] / Math.max(p.hours, 0.1) : p.stats[k]);
+  const val = (p, k) => p.stats[k];
   const out = ps.map(() => []);
   AXES.forEach((ax, i) => {
     if (ax.survival) {
@@ -410,15 +409,10 @@ function renderPlayers() {
       <div class="kv">${kv}</div>${place("上次死亡", ld)}${place("重生点", rs)}</div>`;
   }).join("");
   paint($("#tab-players"), `<div class="wrap">
-    <div class="sess-h"><h2>玩家</h2>
-      <div class="toggle"><button data-m="1" class="${perHour ? "on" : ""}">每小时</button><button data-m="0" class="${perHour ? "" : "on"}">总量</button></div></div>
-    <p class="muted" style="margin-top:0">${perHour ? "按每小时游戏时间算，看的是玩法风格。" : "按累计总量算，看的是总贡献。"}每根轴以${ps.length}人中的最高者为满分；「生存」是平均每次死亡之间活了多久。</p>
+    <h2>玩家</h2>
+    <p class="muted" style="margin-top:0">按累计总量算，每根轴以${ps.length}人中的最高者为满分；「生存」是平均每次死亡之间活了多久。</p>
     <div class="card">${all}<div class="legend">${legend}</div></div>
     <div class="cards">${cards}</div></div>`);
-  $("#tab-players").querySelectorAll(".toggle button").forEach((b) => (b.onclick = () => {
-    perHour = b.dataset.m === "1";
-    renderPlayers();
-  }));
 }
 
 // ---------- loading ----------

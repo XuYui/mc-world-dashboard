@@ -16,7 +16,7 @@ The interface text is Chinese. Game names (advancements, mobs, death messages) c
 - **Status bar**: server up or down, who is online (dimension, health, hunger, time online), in-game day, day/night, weather and TPS. Click TPS for memory, CPU, loaded chunks and entities, with an hour of history.
 - **Mainline**: ten key advancements from the first stone to the ender dragon, with when the group first achieved each, plus the full advancement list.
 - **Sessions**: play sessions are split automatically. Each shows who played, for how long, new advancements (team firsts marked) and deaths (jump to the spot on the map). Sessions load in pages.
-- **Players**: a six-axis radar chart (per hour or totals), about 55 automatic titles (each with its reason), last death point and respawn point.
+- **Players**: a six-axis radar chart (cumulative totals), about 55 automatic titles (each with its reason), last death point and respawn point.
 - Block-texture look with the game's pixel font for headings and numbers; works on phones and tablets. The site checks itself and shows a notice if the plugin's data, the tiles or its own refresh stop working.
 
 ## How it fits together
