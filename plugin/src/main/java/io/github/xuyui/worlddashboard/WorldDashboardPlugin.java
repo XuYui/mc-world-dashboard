@@ -249,7 +249,7 @@ public final class WorldDashboardPlugin extends JavaPlugin implements Listener {
         try {
             Object api = Class.forName("net.skinsrestorer.api.SkinsRestorerProvider").getMethod("get").invoke(null);
             Class<?> sr = Class.forName("net.skinsrestorer.api.SkinsRestorer");
-            Class<?> applier = Class.forName("net.skinsrestorer.api.SkinApplier");
+            Class<?> applier = Class.forName("net.skinsrestorer.api.property.SkinApplier");
             skinApplier = sr.getMethod("getSkinApplier", Class.class).invoke(api, Player.class);
             applySkin = applier.getMethod("applySkin", Object.class);
             getLogger().info("SkinsRestorer found: skins changed on the dashboard apply immediately");
