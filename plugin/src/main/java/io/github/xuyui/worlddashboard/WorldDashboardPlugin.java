@@ -7,6 +7,7 @@ import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.Reader;
 import java.lang.management.ManagementFactory;
+import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -18,6 +19,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -54,6 +56,9 @@ import org.bukkit.plugin.java.JavaPlugin;
  *       and the server's load (TPS, tick time, memory, CPU) with an hour of per-minute history.</li>
  * </ul>
  *
+ * <p>When the dashboard changes someone's skin it drops {@code skin-apply/<uuid>} here; if that
+ * player is online the plugin asks SkinsRestorer (optional, found by reflection) to re-apply it.
+ *
  * <p>The dashboard backend reads both; the plugin itself serves nothing and needs no other plugin.
  * While the server is paused because nobody is online, ticks stop and so does live.json.
  */
@@ -71,6 +76,9 @@ public final class WorldDashboardPlugin extends JavaPlugin implements Listener {
     private Map<String, String> lang = Map.of();
     private Path events;
     private Path live;
+    private Path skinApply;
+    private Object skinApplier;
+    private Method applySkin;
     private long lastHistoryMinute = -1;
 
     @Override
@@ -79,11 +87,15 @@ public final class WorldDashboardPlugin extends JavaPlugin implements Listener {
         Path dir = getDataFolder().toPath();
         events = dir.resolve("events.jsonl");
         live = dir.resolve("live.json");
+        skinApply = dir.resolve("skin-apply");
         loadLang(dir.resolve("lang.json"));
         getServer().getPluginManager().registerEvents(this, this);
         event("server_start", null, null);
         // Worlds are loaded by now; "ready" marks when players can join.
-        getServer().getScheduler().runTask(this, () -> event("server_ready", null, null));
+        getServer().getScheduler().runTask(this, () -> {
+            event("server_ready", null, null);
+            hookSkinsRestorer();
+        });
         long period = Math.max(20L, getConfig().getLong("live-interval-seconds", 2) * 20L);
         getServer().getScheduler().runTaskTimer(this, this::writeLive, 20L, period);
     }
@@ -155,6 +167,7 @@ public final class WorldDashboardPlugin extends JavaPlugin implements Listener {
     // ---------- live state ----------
 
     private void writeLive() {
+        applyRequestedSkins();
         Server server = getServer();
         List<Map<String, Object>> players = new ArrayList<>();
         for (Player p : server.getOnlinePlayers()) {
@@ -221,9 +234,59 @@ public final class WorldDashboardPlugin extends JavaPlugin implements Listener {
         s.put("ts", now);
         s.put("level", level());
         s.put("players", players);
+        s.put("features", skinApplier != null ? List.of("skin-apply") : List.of());
         s.put("health", health);
         String json = gson.toJson(s);
         io.submit(() -> writeAtomic(live, json));
+    }
+
+    // ---------- skins (SkinsRestorer) ----------
+
+    private void hookSkinsRestorer() {
+        if (getServer().getPluginManager().getPlugin("SkinsRestorer") == null) {
+            return;
+        }
+        try {
+            Object api = Class.forName("net.skinsrestorer.api.SkinsRestorerProvider").getMethod("get").invoke(null);
+            Class<?> sr = Class.forName("net.skinsrestorer.api.SkinsRestorer");
+            Class<?> applier = Class.forName("net.skinsrestorer.api.SkinApplier");
+            skinApplier = sr.getMethod("getSkinApplier", Class.class).invoke(api, Player.class);
+            applySkin = applier.getMethod("applySkin", Object.class);
+            getLogger().info("SkinsRestorer found: skins changed on the dashboard apply immediately");
+        } catch (ReflectiveOperationException | LinkageError | RuntimeException ex) {
+            getLogger().log(Level.WARNING, "SkinsRestorer is installed but its API could not be used", ex);
+        }
+    }
+
+    /** Re-apply skins the dashboard changed; players who are offline get theirs on the next join anyway. */
+    private void applyRequestedSkins() {
+        if (!Files.isDirectory(skinApply)) {
+            return;
+        }
+        try (var files = Files.list(skinApply)) {
+            for (Path f : files.toList()) {
+                Files.deleteIfExists(f);
+                if (skinApplier == null) {
+                    continue;
+                }
+                UUID id;
+                try {
+                    id = UUID.fromString(f.getFileName().toString());
+                } catch (IllegalArgumentException ex) {
+                    continue;
+                }
+                Player p = getServer().getPlayer(id);
+                if (p != null) {
+                    try {
+                        applySkin.invoke(skinApplier, p);
+                    } catch (ReflectiveOperationException | RuntimeException ex) {
+                        getLogger().log(Level.WARNING, "Could not apply the new skin of " + p.getName(), ex);
+                    }
+                }
+            }
+        } catch (IOException ex) {
+            getLogger().log(Level.WARNING, "Could not read " + skinApply, ex);
+        }
     }
 
     // ---------- files (on the io thread) ----------

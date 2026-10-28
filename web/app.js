@@ -1,5 +1,6 @@
 "use strict";
-// Page shell: status bar, notices, and the 主线 / 联机日志 / 玩家 tabs. The map lives in map.js.
+// Page shell: status bar, notices, and the 主线 / 联机日志 / 玩家 tabs. The map lives in map.js,
+// the 皮肤 tab in skins.js.
 // All URLs are relative, so the page also works behind a path prefix.
 
 const TZ = "Asia/Shanghai";
@@ -54,8 +55,15 @@ const gb = (b) => (b / 1073741824).toFixed(2) + " GB";
 // whole half-hearts, so show it the same way.
 const hp = (h) => Math.ceil(+h || 0);
 
-// Player head: the default skin the game gives this UUID (made by the backend).
-const head = (p, size) => `<img class="head" width="${size}" height="${size}" alt="" src="heads/${esc(p?.uuid || "00000000000000000000000000000000")}.png">`;
+// Player head: face + hat cut out of the skin the player wears (/skins/<uuid>.png, the game's
+// default skin when they have none). skins.js keeps window.skinVersions so a new skin shows at once.
+window.skinVersions = {};
+function skinHead(uuid, size) {
+  const id = /^[0-9a-f-]{32,36}$/.test(uuid || "") ? uuid : "00000000000000000000000000000000";
+  const v = window.skinVersions[id] || "";
+  return `<span class="head sk" role="img" aria-hidden="true" style="width:${size}px;height:${size}px;--sk:url('skins/${id}.png?v=${v}')"></span>`;
+}
+const head = (p, size) => skinHead(p?.uuid, size);
 
 // ---------- DOM helpers ----------
 
@@ -99,11 +107,12 @@ function openTab(name) {
   document.querySelectorAll(".tab").forEach((t) => t.classList.toggle("on", t.id === "tab-" + name));
   try { history.replaceState(null, "", name === "map" ? location.pathname : "#" + name); } catch (e) {}
   if (name === "map" && window.mapResized) window.mapResized();
+  if (window.skinsTabShown) window.skinsTabShown(name === "skins");
 }
 document.querySelectorAll("nav button").forEach((b) => b.addEventListener("click", () => openTab(b.dataset.tab)));
 window.addEventListener("hashchange", () => {
   const t = location.hash.slice(1);
-  openTab(["progress", "sessions", "players"].includes(t) ? t : "map");
+  openTab(["progress", "sessions", "players", "skins"].includes(t) ? t : "map");
 });
 
 // ---------- live state (WorldDashboard plugin, via /api/live) ----------
@@ -435,7 +444,7 @@ async function loadSummary() {
     renderStatus();
     if (first) {
       const t = location.hash.slice(1);
-      if (["progress", "sessions", "players"].includes(t)) openTab(t);
+      if (["progress", "sessions", "players", "skins"].includes(t)) openTab(t);
     }
   } catch (e) {}
 }

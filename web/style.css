@@ -418,3 +418,65 @@ h1, h2, .pcard .nm { font-size: 32px; line-height: 36px; }
 .leaflet-tooltip img { image-rendering: pixelated; }
 
 @media (pointer: coarse) { #coords { display: none !important; } }
+
+/* heads cut out of the skin texture: hat layer over the face, both scaled 8x without smoothing */
+.head.sk { display: inline-block; vertical-align: middle; image-rendering: pixelated;
+  background: var(--sk) 71.4286% 14.2857% / 800% 800% no-repeat, var(--sk) 14.2857% 14.2857% / 800% 800% no-repeat, #333; }
+
+/* ===== skins tab ===== */
+.mcbtn { display: inline-block; border: 0; cursor: pointer; padding: 8px 16px; color: #eee; text-align: center; text-decoration: none;
+  font: 16px/20px "MCPixel", system-ui, sans-serif; -webkit-font-smoothing: none; text-shadow: 2px 2px 0 rgba(0,0,0,.6);
+  background: linear-gradient(rgba(0,0,0,.45), rgba(0,0,0,.45)), url("assets/tex/block/stone_bricks.png") 0 0 / 48px; image-rendering: pixelated;
+  box-shadow: inset 2px 2px 0 rgba(255,255,255,.18), inset -2px -2px 0 rgba(0,0,0,.5); }
+.mcbtn:hover { color: #ffffa0; }
+.mcbtn.go { color: #fff; background: linear-gradient(rgba(0,0,0,.3), rgba(0,0,0,.3)), url("assets/tex/block/oak_planks.png") 0 0 / 48px;
+  box-shadow: inset 2px 2px 0 rgba(255,255,255,.25), inset -2px -2px 0 rgba(0,0,0,.5), 0 0 0 2px #7ed957; }
+.mcbtn:disabled, .mcbtn.off { opacity: .5; cursor: default; }
+
+.skingrid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; align-items: start; }
+.stagecard { display: flex; flex-direction: column; align-items: center; padding-bottom: 10px; }
+.stagecard canvas { display: block; max-width: 100%; cursor: grab; touch-action: none;
+  background: radial-gradient(ellipse at 50% 85%, rgba(126,217,87,.14), transparent 60%); }
+.stagecard canvas:active { cursor: grabbing; }
+.skincap { align-self: stretch; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; min-height: 36px; }
+.skincap .nm { font: 32px/36px "MCPixel", system-ui, sans-serif; -webkit-font-smoothing: none; color: #fff; }
+.skincap .tag { margin-left: 0; }
+.stagebar { align-self: stretch; display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-top: 6px; }
+.stagebar .linkbtn { font-size: 13px; margin: 0; }
+.stagehint { font-size: 12px; margin: 6px 0 0; align-self: stretch; }
+
+.skinside { display: flex; flex-direction: column; }
+.skinpick { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.skinslot { cursor: pointer; text-align: left; color: inherit; font: inherit; text-shadow: inherit; min-width: 0; }
+.skinslot .who { min-width: 0; }
+.skinslot .sub { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.skinslot:hover { filter: brightness(1.15); }
+.skinslot.sel { box-shadow: inset 3px 3px 0 rgba(255,255,255,.18), inset -3px -3px 0 rgba(0,0,0,.45), 0 0 0 2px #7ed957; }
+.skinslot .you { color: #8dff6a; font-size: 12px; font-family: system-ui, sans-serif; }
+
+#skinedit .edh { margin-top: 0; color: #fff; }
+#skinedit p { margin: 8px 0; }
+#skinedit .small { font-size: 12.5px; }
+#skinedit code { background: rgba(0,0,0,.5); padding: 0 4px; }
+.skinlogin { display: flex; flex-direction: column; gap: 10px; }
+.skinlogin label { display: flex; flex-direction: column; gap: 4px; color: var(--muted); font-size: 13px; }
+.skinlogin input { font: 15px/20px system-ui, sans-serif; color: #fff; padding: 8px 10px; border: 0; border-radius: 0; outline: none;
+  background: #000; box-shadow: inset 0 0 0 2px #a0a0a0; text-shadow: none; }
+.skinlogin input:focus { box-shadow: inset 0 0 0 2px #fff; }
+.skinlogin .mcbtn { align-self: flex-start; min-width: 8em; }
+.pickfile { display: block; }
+.edbtns { display: flex; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
+#skinedit .toggle { margin-top: 4px; flex-wrap: wrap; }
+#skinedit .linkbtn { font-size: 13px; margin: 0; }
+.skinmsg { margin-top: 10px; padding: 8px 10px; font-size: 13.5px; background: rgba(0,0,0,.45);
+  box-shadow: inset 2px 2px 0 rgba(255,255,255,.08), inset -2px -2px 0 rgba(0,0,0,.4); }
+.skinmsg.good { color: #b8f0a2; box-shadow: inset 2px 2px 0 rgba(255,255,255,.08), inset -2px -2px 0 rgba(0,0,0,.4), 0 0 0 2px #4fa52f; }
+.skinmsg.bad { color: #ffb4ad; box-shadow: inset 2px 2px 0 rgba(255,255,255,.08), inset -2px -2px 0 rgba(0,0,0,.4), 0 0 0 2px #e05555; }
+.skincap, .skinslot .name, .toggle button { font-family: "MCPixel", system-ui, sans-serif; }
+@media (max-width: 760px) {
+  /* phone: pick a player, then the preview, then the controls */
+  .skingrid { grid-template-columns: 1fr; gap: 0; }
+  .skinside { display: contents; }
+  .pickcard { order: 1; } .stagecard { order: 2; } .editcard { order: 3; }
+}
+@media (pointer: coarse) { .mcbtn, .skinslot { min-height: 44px; } }

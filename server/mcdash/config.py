@@ -22,3 +22,11 @@ TZ = timezone(timedelta(hours=float(ENV("DASH_UTC_OFFSET", "8"))))  # timezone o
 RESTART = ENV("DASH_RESTART", "04:30")                                # daily restart time shown on the page
 REFRESH_SECONDS = int(ENV("DASH_REFRESH", "30"))                      # how often save files are re-read
 MERGE_GAP = 15 * 60                                                   # gap between visits that still counts as one session
+
+# Skins page. Skins are applied through the SkinsRestorer plugin's file storage and signed by MineSkin;
+# changing one needs the player's AuthMe password, which is only accepted over HTTPS.
+SKINSRESTORER = ENV("DASH_SKINSRESTORER_DIR", os.path.join(MC, "plugins", "SkinsRestorer"))
+AUTHME_DB = ENV("DASH_AUTHME_DB", os.path.join(MC, "plugins", "AuthMe", "authme.db"))
+MINESKIN_KEY = ENV("DASH_MINESKIN_KEY", "")                           # optional; without one the free rate limit applies
+PUBLIC_URL = ENV("DASH_PUBLIC_URL", "")                               # https address to send people to for logging in
+LOGIN_OVER_HTTP = ENV("DASH_LOGIN_OVER_HTTP", "") == "1"              # testing only: accept passwords without HTTPS

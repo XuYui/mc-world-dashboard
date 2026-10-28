@@ -9,6 +9,7 @@ Outputs (all git-ignored):
     server/defs.json                    advancement tree, death-message templates, zh_cn names
     web/assets/tex/...                  block / item textures and HUD icons used by the page
     web/assets/heads/<skin>.png         32x32 face + hat for each of the 18 default skins
+    web/assets/skins/<skin>.png         the 18 default skin textures themselves (skins page, heads)
     web/assets/mcpixel.woff2            pixel font subset
     plugin/build/lang.json              zh_cn strings for the plugin's death messages
 """
@@ -77,9 +78,11 @@ def main():
 
     skins = [n for n in jar.namelist() if re.match(r"assets/minecraft/textures/entity/player/(slim|wide)/\w+\.png$", n)]
     os.makedirs(os.path.join(ASSETS, "heads"), exist_ok=True)
+    os.makedirs(os.path.join(ASSETS, "skins"), exist_ok=True)
     for n in skins:
         model, name = n.split("/")[-2], n.split("/")[-1]
         head(jar.read(n)).save(os.path.join(ASSETS, "heads", "%s_%s" % (model, name)))
+        open(os.path.join(ASSETS, "skins", "%s_%s" % (model, name)), "wb").write(jar.read(n))
     print("heads: %d" % len(skins))
 
     # Plugin tooltips: death templates plus every entity / item / block name an argument may use.

@@ -120,7 +120,7 @@ function playerIcon(p) {
     iconSize: [28, 28], iconAnchor: [14, 14],
   });
 }
-const plate = (p) => `<img class="head" src="heads/${esc(p.uuid)}.png" alt="" width="16" height="16">${esc(p.name)}`
+const plate = (p) => `${skinHead(p.uuid, 16)}${esc(p.name)}`
   + `<span class="stat" title="生命值"><img src="assets/tex/gui/heart.png" alt="生命">${hp(p.health)}</span>`
   + `<span class="stat" title="盔甲值"><img src="assets/tex/gui/armor.png" alt="盔甲">${p.armor ?? 0}</span>`;
 
@@ -270,7 +270,7 @@ function renderGraveList() {
   const list = visibleGraves().sort((a, b) => b.ts - a.ts);
   el.classList.toggle("gone", !list.length);
   el.innerHTML = list.map((g) => `<button type="button" onclick="showOnMap({dim:'${esc(g.where.dim)}',x:${g.where.pos[0]},z:${g.where.pos[2]},zoom:4})">
-    <img class="head" src="heads/${esc(g.uuid || "")}.png" width="16" height="16" alt=""> ${esc(g.name)}
+    ${skinHead(g.uuid, 16)} ${esc(g.name)}
     <span class="muted">${DIM_NAME[g.where.dim] || ""} · ${fmtAgo(g.ts)}</span></button>`).join("");
 }
 

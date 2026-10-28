@@ -15,7 +15,7 @@ source deploy/config
 SSH_OPTS=(-o IdentitiesOnly=yes -o ConnectTimeout=15 -o ServerAliveInterval=5)
 [[ -n "${SSH_KEY:-}" ]] && SSH_OPTS+=(-i "$SSH_KEY")
 
-for f in server/defs.json web/assets/mcpixel.woff2 web/assets/heads web/assets/tex; do
+for f in server/defs.json web/assets/mcpixel.woff2 web/assets/heads web/assets/skins web/assets/tex; do
     [[ -e $f ]] || { echo "missing $f: run tools/build_assets.py first" >&2; exit 1; }
 done
 with_plugin=false

@@ -6,6 +6,7 @@ Standard library only. A background thread refreshes everything every DASH_REFRE
 requests are answered from that cache, compressed when the browser accepts it, with ETags so an
 unchanged response costs a 304.
 """
+import base64
 import gzip
 import hashlib
 import json
@@ -15,10 +16,11 @@ import re
 import threading
 import time
 import traceback
+from http.cookies import SimpleCookie
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
 
-from . import config, report, saves
+from . import auth, config, report, saves, skins
 from .gamedata import skin_for
 from .store import Store
 from .util import load_json
@@ -26,6 +28,9 @@ from .util import load_json
 mimetypes.add_type("font/woff2", ".woff2")
 mimetypes.add_type("application/javascript", ".js")
 COMPRESSIBLE = ("application/json", "application/javascript", "text/", "image/svg+xml")
+SKIN_RE = re.compile(r"^/skins/([0-9a-f-]{32,36})\.png$")
+COOKIE = "mcdash_session"
+MAX_POST = 256 * 1024
 TILE_RE = re.compile(r"^/tiles/([a-z0-9_]+)/(\d)/(-?\d+)_(-?\d+)\.png$")
 LIVE_STALE = 30           # seconds without a live.json update before the server counts as paused/stopped
 
@@ -59,6 +64,10 @@ class State:
         people = [p["name"] for p in saves.roster()]
         self.store.ingest_logs(people)
         self.store.ingest_plugin()
+        try:
+            skins.refresh(saves.roster())
+        except Exception:
+            traceback.print_exc(limit=2)
         summary, sessions, graves = report.build(self.store)
         summary["fullmap"] = load_json(os.path.join(config.DATA, "fullmap", "index.json"), {})
         tiles = tile_index()
@@ -207,6 +216,118 @@ class Handler(BaseHTTPRequestHandler):
                 while chunk := f.read(1 << 16):
                     self.wfile.write(chunk)
 
+    def send_json(self, obj, status=200, cookie=None):
+        data = json.dumps(obj, ensure_ascii=False).encode()
+        self.send_response(status)
+        self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Content-Length", str(len(data)))
+        self.send_header("Cache-Control", "no-store")
+        if cookie is not None:
+            self.send_header("Set-Cookie", cookie)
+        self.end_headers()
+        if self.command != "HEAD":
+            self.wfile.write(data)
+
+    # ---------- login and skins ----------
+
+    def from_proxy(self):
+        return self.client_address[0] in ("127.0.0.1", "::1")
+
+    def secure(self):
+        """Passwords are only accepted over HTTPS (through the reverse proxy)."""
+        return config.LOGIN_OVER_HTTP or (self.from_proxy() and self.headers.get("X-Forwarded-Proto") == "https")
+
+    def peer(self):
+        return (self.headers.get("X-Real-IP") if self.from_proxy() else None) or self.client_address[0]
+
+    def session_token(self):
+        c = SimpleCookie()
+        try:
+            c.load(self.headers.get("Cookie", ""))
+        except Exception:
+            return None
+        return c[COOKIE].value if COOKIE in c else None
+
+    def session_cookie(self, token, max_age):
+        secure = "" if config.LOGIN_OVER_HTTP else "; Secure"
+        return "%s=%s; Path=/; Max-Age=%d; HttpOnly; SameSite=Strict%s" % (COOKIE, token, max_age, secure)
+
+    def skins_state(self):
+        me = auth.who(self.session_token()) if self.secure() else None
+        live = read_live()
+        players = []
+        for p in saves.roster():
+            d = skins.describe(p["uuid"])
+            f = skins.png_for(p["uuid"])
+            try:
+                v = "%x" % os.stat(f).st_mtime_ns
+            except OSError:
+                v = "0"
+            players.append({"uuid": p["uuid"], "name": p["name"], "kind": d["kind"], "slim": d["slim"], "v": v})
+        return {
+            "players": players, "me": me[0] if me else None,
+            "can_login": self.secure() and auth.available(), "https_url": config.PUBLIC_URL,
+            "live_apply": bool(live and "skin-apply" in (live.get("features") or [])),
+        }
+
+    def do_POST(self):
+        path = urlparse(self.path).path
+        try:
+            n = int(self.headers.get("Content-Length") or 0)
+            if (self.headers.get("X-Requested-With") != "mcdash"
+                    or not self.headers.get("Content-Type", "").startswith("application/json") or not 0 < n <= MAX_POST):
+                return self.send_json({"error": "bad request"}, 400)
+            try:
+                body = json.loads(self.rfile.read(n))
+            except ValueError:
+                return self.send_json({"error": "bad request"}, 400)
+            if path == "/api/logout":
+                auth.logout(self.session_token())
+                return self.send_json({"ok": True}, cookie=self.session_cookie("", 0))
+            if not self.secure():
+                return self.send_json({"error": "为了保护密码，只能通过 HTTPS 地址登录和更改皮肤。"}, 403)
+            if path == "/api/login":
+                return self.post_login(body)
+            if path == "/api/skin":
+                return self.post_skin(body)
+            return self.send_json({"error": "not found"}, 404)
+        except (BrokenPipeError, ConnectionResetError):
+            pass
+
+    def post_login(self, body):
+        name, password = str(body.get("name") or "").strip(), str(body.get("password") or "")
+        if not auth.available():
+            return self.send_json({"error": "服务器缺少 bcrypt，暂时不能登录。"}, 503)
+        wait = auth.blocked(name, self.peer())
+        if wait:
+            return self.send_json({"error": "密码错太多次了，%d 分钟后再试。" % max(1, wait // 60)}, 429)
+        person = next((p for p in saves.roster() if p["name"].lower() == name.lower()), None)
+        if not person or not auth.check_password(person["name"], password):
+            auth.failed(name, self.peer())
+            return self.send_json({"error": "账号或密码不对。密码就是进服时 /login 用的那个。"}, 401)
+        token = auth.login(person["name"], person["uuid"])
+        return self.send_json({"ok": True, "me": person["name"]}, cookie=self.session_cookie(token, auth.SESSION_SECONDS))
+
+    def post_skin(self, body):
+        me = auth.who(self.session_token())
+        if not me:
+            return self.send_json({"error": "登录已过期，请重新登录。"}, 401)
+        name, uuid = me
+        try:
+            if body.get("reset"):
+                skins.set_default(uuid, name)
+            else:
+                try:
+                    png = base64.b64decode(str(body.get("png") or ""), validate=True)
+                except ValueError:
+                    return self.send_json({"error": "图片数据损坏了，换一张试试。"}, 400)
+                skins.set_custom(uuid, name, png, bool(body.get("slim")))
+        except skins.SkinError as e:
+            return self.send_json({"error": str(e)}, 400)
+        live = read_live()
+        online = bool(live and not live.get("stopped") and any(p.get("uuid") == uuid for p in live.get("players") or []))
+        return self.send_json({"ok": True, "online": online, "state": self.skins_state()})
+
     def do_HEAD(self):
         self.do_GET()
 
@@ -233,6 +354,11 @@ class Handler(BaseHTTPRequestHandler):
                     "checks": STATE.checks + (["后台刷新出错：" + STATE.error.strip().splitlines()[-1]] if STATE.error else []),
                     "live": live, "paused": live is None or live["age"] > LIVE_STALE,
                 }))
+            if path == "/api/skins":
+                return self.send_json(self.skins_state())
+            m = SKIN_RE.match(path)
+            if m:
+                return self.send_file(skins.png_for(m.group(1)), "image/png")
             m = TILE_RE.match(path)
             if m:
                 world, z, x, y = m.groups()
