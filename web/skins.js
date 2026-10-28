@@ -176,8 +176,8 @@ function renderSkinEditor(p) {
       ${mine ? `<button type="button" class="mcbtn" data-pick="${esc(mine.uuid)}">看我的皮肤</button>` : ""}
       <p class="muted small">已登录为 ${esc(s.me)} · <button type="button" class="linkbtn" data-act="logout">退出登录</button></p>`;
   } else if (skinPending) {
-    html = `<h3 class="edh">新皮肤预览</h3>
-      <p class="muted">左边是换上之后的样子。手臂粗细不对的话在这里改：</p>
+    html = `<h3 class="edh">${skinPending.armsOnly ? "换手臂预览" : "新皮肤预览"}</h3>
+      <p class="muted">${skinPending.armsOnly ? "皮肤图案不变，只换手臂粗细。左边是换上之后的样子：" : "左边是换上之后的样子。手臂粗细不对的话在这里改："}</p>
       <div class="toggle" role="group" aria-label="手臂">
         <button type="button" data-model="wide" class="${skinPending.slim ? "" : "on"}">经典（粗手臂）</button>
         <button type="button" data-model="slim" class="${skinPending.slim ? "on" : ""}">纤细（细手臂）</button></div>
@@ -188,6 +188,9 @@ function renderSkinEditor(p) {
     html = `<h3 class="edh">更改我的皮肤</h3>
       <label class="mcbtn go pickfile ${skinBusy ? "off" : ""}">选择皮肤图片…<input type="file" accept="image/png" hidden ${skinBusy ? "disabled" : ""}></label>
       <p class="muted small">64×64 的 PNG 皮肤文件。选好后先在左边预览，确认了再保存。</p>
+      <div class="edrow"><span class="muted">手臂</span><div class="toggle" role="group" aria-label="手臂">
+        <button type="button" data-arms="wide" class="${p.slim ? "" : "on"}" ${skinBusy ? "disabled" : ""}>经典（粗手臂）</button>
+        <button type="button" data-arms="slim" class="${p.slim ? "on" : ""}" ${skinBusy ? "disabled" : ""}>纤细（细手臂）</button></div></div>
       ${p.kind === "custom" ? `<button type="button" class="linkbtn" data-act="reset" ${skinBusy ? "disabled" : ""}>恢复默认皮肤</button>` : ""}
       ${msgLine()}
       <p class="muted small">已登录为 ${esc(s.me)} · <button type="button" class="linkbtn" data-act="logout">退出登录</button></p>`;
@@ -228,6 +231,24 @@ function chooseFile(file) {
     img.src = dataUrl;
   };
   reader.readAsDataURL(file);
+}
+
+// Same skin picture, other arm model: preview it like a newly chosen file, then save as usual.
+async function switchArms(p, slim) {
+  skinMsg = null;
+  try {
+    const blob = await (await fetch(skinURL(p))).blob();
+    const dataUrl = await new Promise((ok, fail) => {
+      const r = new FileReader();
+      r.onload = () => ok(r.result);
+      r.onerror = fail;
+      r.readAsDataURL(blob);
+    });
+    skinPending = { dataUrl, b64: dataUrl.split(",")[1], slim, armsOnly: true };
+  } catch (e) {
+    skinMsg = { text: "读取当前皮肤失败，刷新页面再试。", bad: true };
+  }
+  renderSkins();
 }
 
 function savedText(r) {
@@ -283,7 +304,7 @@ function onSkinChange(e) {
 }
 
 async function onSkinClick(e) {
-  const b = e.target.closest("[data-pick],[data-anim],[data-model],[data-act]");
+  const b = e.target.closest("[data-pick],[data-anim],[data-model],[data-arms],[data-act]");
   if (!b || b.disabled) return;
   if (b.dataset.pick) {
     skinSel = b.dataset.pick;
@@ -291,6 +312,10 @@ async function onSkinClick(e) {
   } else if (b.dataset.anim) {
     skinAnim = b.dataset.anim;
     setAnimation();
+  } else if (b.dataset.arms) {
+    const p = selPlayer();
+    if (!p || (b.dataset.arms === "slim") === p.slim) return;
+    return switchArms(p, b.dataset.arms === "slim");
   } else if (b.dataset.model && skinPending) {
     skinPending.slim = b.dataset.model === "slim";
   } else if (b.dataset.act === "cancel") {

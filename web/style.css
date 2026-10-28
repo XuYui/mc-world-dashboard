@@ -465,6 +465,8 @@ h1, h2, .pcard .nm { font-size: 32px; line-height: 36px; }
 .skinlogin input:focus { box-shadow: inset 0 0 0 2px #fff; }
 .skinlogin .mcbtn { align-self: flex-start; min-width: 8em; }
 .pickfile { display: block; }
+.edrow { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 10px 0 12px; }
+#skinedit .edrow .toggle { margin-top: 0; }
 .edbtns { display: flex; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
 #skinedit .toggle { margin-top: 4px; flex-wrap: wrap; }
 #skinedit .linkbtn { font-size: 13px; margin: 0; }
