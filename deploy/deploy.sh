@@ -15,7 +15,7 @@ source deploy/config
 SSH_OPTS=(-o IdentitiesOnly=yes -o ConnectTimeout=15 -o ServerAliveInterval=5)
 [[ -n "${SSH_KEY:-}" ]] && SSH_OPTS+=(-i "$SSH_KEY")
 
-for f in server/defs.json web/assets/mcpixel.woff2 web/assets/heads web/assets/skins web/assets/tex; do
+for f in server/defs.json server/blockcolors.json web/assets/mcpixel.woff2 web/assets/heads web/assets/skins web/assets/tex; do
     [[ -e $f ]] || { echo "missing $f: run tools/build_assets.py first" >&2; exit 1; }
 done
 with_plugin=false
@@ -54,7 +54,7 @@ find "$REMOTE_DIR/server" "$REMOTE_DIR/web" -type d -exec chmod 750 {} +
 find "$REMOTE_DIR/server" "$REMOTE_DIR/web" -type f -exec chmod 640 {} +
 
 reload=false
-for unit in mc-dashboard-web.service mc-fullmap.service mc-fullmap.timer; do
+for unit in mc-dashboard-web.service mc-fullmap.service mc-fullmap.timer mc-structures.service mc-structures.timer; do
     sed -e "s|/opt/mc-dashboard|$REMOTE_DIR|g" -e "s|^User=.*|User=$RUN_AS|" -e "s|^Group=.*|Group=$RUN_AS|" \
         "$REMOTE_DIR/server/systemd/$unit" > "/tmp/$unit"
     if ! cmp -s "/tmp/$unit" "/etc/systemd/system/$unit"; then
@@ -68,6 +68,7 @@ if $reload; then systemctl daemon-reload; fi
 systemctl enable mc-dashboard-web.service >/dev/null
 if [[ ${NO_START:-} != 1 ]]; then systemctl restart mc-dashboard-web.service; fi
 if command -v vips >/dev/null; then systemctl enable --now mc-fullmap.timer >/dev/null; fi
+systemctl enable --now mc-structures.timer >/dev/null
 echo "dashboard deployed"
 
 if $WITH_PLUGIN; then

@@ -311,6 +311,42 @@ h1, h2, .pcard .nm { font-size: 32px; line-height: 36px; }
 #deathbtns button.on { color: #fff; background: linear-gradient(rgba(60,0,0,.35), rgba(60,0,0,.35)), url("assets/tex/block/nether_bricks.png") 0 0 / 48px;
   box-shadow: inset 2px 2px 0 rgba(255,255,255,.2), inset -2px -2px 0 rgba(0,0,0,.5), 0 0 0 2px #e05555; }
 @media (max-width: 600px) { #deathbtns button { padding: 6px 8px; } }
+#maptools { flex-wrap: wrap-reverse; justify-content: flex-end; max-width: calc(100% - 20px); }
+
+/* underground layer: toggle buttons next to the death buttons, height stepper on the left */
+#cavebtns { display: flex; gap: 4px; padding: 4px;
+  background: rgba(0,0,0,.55); box-shadow: inset 2px 2px 0 rgba(255,255,255,.1), inset -2px -2px 0 rgba(0,0,0,.5); }
+#cavebtns button, #cavebar button { border: 0; cursor: pointer; padding: 6px 12px; color: #d6d6d6; white-space: nowrap;
+  font: 16px/20px "MCPixel", system-ui, sans-serif; -webkit-font-smoothing: none; text-shadow: 2px 2px 0 rgba(0,0,0,.6);
+  background: linear-gradient(rgba(0,0,0,.45), rgba(0,0,0,.45)), url("assets/tex/block/deepslate.png") 0 0 / 48px; image-rendering: pixelated;
+  box-shadow: inset 2px 2px 0 rgba(255,255,255,.18), inset -2px -2px 0 rgba(0,0,0,.5); }
+#cavebtns button:hover, #cavebar button:hover:not(:disabled) { color: #fff; }
+#cavebtns button.on { color: #fff; background: linear-gradient(rgba(0,40,45,.35), rgba(0,40,45,.35)), url("assets/tex/block/deepslate.png") 0 0 / 48px;
+  box-shadow: inset 2px 2px 0 rgba(255,255,255,.2), inset -2px -2px 0 rgba(0,0,0,.5), 0 0 0 2px #2ee6d0; }
+#cavebar button:disabled { opacity: .4; cursor: default; }
+@media (max-width: 600px) { #cavebtns button { padding: 6px 8px; } }
+#cavebar { position: absolute; left: 10px; top: 96px; z-index: 500; display: flex; flex-direction: column; align-items: stretch; gap: 4px;
+  padding: 4px; width: 84px; background: rgba(0,0,0,.6); box-shadow: inset 2px 2px 0 rgba(255,255,255,.1), inset -2px -2px 0 rgba(0,0,0,.5);
+  font: 16px/20px "MCPixel", system-ui, sans-serif; -webkit-font-smoothing: none; color: #eee; text-align: center; }
+#cavebar.gone { display: none; }
+#cavebar button { padding: 4px 0; }
+#cavebar .y { padding: 4px 0; text-shadow: 2px 2px 0 rgba(0,0,0,.6); }
+#cavebar .y .k { color: #2ee6d0; margin-right: 6px; }
+#cavebar .y b { font-weight: normal; }
+#cavebar .note { font: 11px/14px system-ui, sans-serif; color: #aaa; padding: 2px 0; }
+#citylist { position: absolute; left: 10px; bottom: 40px; z-index: 500; display: flex; flex-direction: column; gap: 4px; max-width: calc(100% - 20px); }
+#citylist.gone { display: none; }
+#citylist .hint { font: 12px/16px system-ui, sans-serif; color: #ddd; padding: 4px 8px; background: rgba(0,0,0,.65); align-self: flex-start; }
+#citylist button { border: 0; cursor: pointer; text-align: left; padding: 6px 10px; color: #eee; display: flex; align-items: center; gap: 6px;
+  font: 16px/20px "MCPixel", system-ui, sans-serif; -webkit-font-smoothing: none; text-shadow: 2px 2px 0 rgba(0,0,0,.6);
+  background: rgba(0,0,0,.65); box-shadow: inset 2px 2px 0 rgba(255,255,255,.1), inset -2px -2px 0 rgba(0,0,0,.5); }
+#citylist button .muted { font: 12px/16px system-ui, sans-serif; margin-left: 6px; }
+@media (pointer: coarse) { #citylist { bottom: 14px; } }
+@media (max-width: 600px) {
+  #citylist { top: 60px; bottom: auto; left: auto; right: 10px; align-items: flex-end; max-width: calc(100% - 114px); }
+  #citylist button { padding: 4px 8px; }
+}
+.city { image-rendering: pixelated; filter: drop-shadow(0 0 3px rgba(46,230,208,.8)); }
 
 /* export dialog */
 #exportpanel { position: absolute; right: 10px; bottom: 70px; z-index: 6; width: min(360px, calc(100% - 20px)); }

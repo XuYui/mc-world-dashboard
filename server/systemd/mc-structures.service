@@ -1,0 +1,16 @@
+[Unit]
+Description=Index structure locations (ancient cities) for the world dashboard
+
+[Service]
+Type=oneshot
+User=minecraft
+Group=minecraft
+UMask=0027
+WorkingDirectory=/opt/mc-dashboard/server
+EnvironmentFile=-/opt/mc-dashboard/dashboard.env
+Environment=PYTHONDONTWRITEBYTECODE=1
+ExecStart=/usr/bin/python3 -m mcdash.caves scan
+Nice=19
+IOSchedulingClass=idle
+# reads every region file once, then only the ones that changed
+MemoryMax=400M

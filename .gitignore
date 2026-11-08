@@ -1,5 +1,6 @@
 # Game-derived files (Mojang's textures, skins, strings, font): built locally by tools/build_assets.py
 server/defs.json
+server/blockcolors.json
 web/assets/
 plugin/build/
 

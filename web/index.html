@@ -37,7 +37,18 @@
     </div>
     <div id="coords" class="gone"></div>
     <div id="gravelist" class="gone"></div>
+    <div id="cavebar" class="gone" role="group" aria-label="地下层高度">
+      <button type="button" data-step="1" title="上移一层" aria-label="上移一层">▲</button>
+      <div class="y"><span class="k">Y</span><b></b></div>
+      <button type="button" data-step="-1" title="下移一层" aria-label="下移一层">▼</button>
+      <div class="note"></div>
+    </div>
+    <div id="citylist" class="gone"></div>
     <div id="maptools">
+      <div id="cavebtns" role="group" aria-label="地下">
+        <button type="button" data-cave="layer">地下</button>
+        <button type="button" data-cave="cities">古城</button>
+      </div>
       <button type="button" id="exportbtn">导出地图</button>
       <div id="deathbtns" role="group" aria-label="死亡记录">
         <button type="button" data-mode="recent">最近死亡</button>
@@ -50,12 +61,13 @@
   <section id="tab-sessions" class="tab"></section>
   <section id="tab-players" class="tab"></section>
   <section id="tab-skins" class="tab"><div class="wrap"><div class="empty">加载中…</div></div></section>
+  <section id="tab-worlds" class="tab"><div class="wrap"><div class="empty">加载中…</div></div></section>
 </main>
 <script src="vendor/leaflet/leaflet.js"></script>
 <script src="app.js"></script>
 <script src="map.js"></script>
+<script src="caves.js"></script>
 <script src="skins.js"></script>
+<script src="worlds.js"></script>
 </body>
 </html>
-  <section id="tab-worlds" class="tab"><div class="wrap"><div class="empty">加载中…</div></div></section>
-<script src="worlds.js"></script>

@@ -72,6 +72,7 @@ function setDimension(dim) {
   tiles.redraw();
   drawGraves();
   drawPlayers(lastPlayers);
+  window.caveDimChanged?.();
 }
 
 // Jump to a place (from the other tabs). Stops following unless keepFollow.

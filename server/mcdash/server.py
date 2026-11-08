@@ -20,7 +20,7 @@ from http.cookies import SimpleCookie
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
 
-from . import auth, config, report, saves, skins, worlds
+from . import auth, caves, config, report, saves, skins, worlds
 from .gamedata import skin_for
 from .store import Store
 from .util import load_json
@@ -32,6 +32,7 @@ SKIN_RE = re.compile(r"^/skins/([0-9a-f-]{32,36})\.png$")
 COOKIE = "mcdash_session"
 MAX_POST = 256 * 1024
 TILE_RE = re.compile(r"^/tiles/([a-z0-9_]+)/(\d)/(-?\d+)_(-?\d+)\.png$")
+CAVE_RE = re.compile(r"^/caves/([a-z0-9_]+)/(-?\d{1,3})/(-?\d{1,4})_(-?\d{1,4})\.png$")
 LIVE_STALE = 30           # seconds without a live.json update before the server counts as paused/stopped
 
 
@@ -284,9 +285,9 @@ class Handler(BaseHTTPRequestHandler):
             if path == "/api/logout":
                 auth.logout(self.session_token())
                 return self.send_json({"ok": True}, cookie=self.session_cookie("", 0))
-            if not self.secure():
             if path == "/api/worlds/switch":       # the owner accepted the admin password over plain http
                 return self.post_switch(body)
+            if not self.secure():
                 return self.send_json({"error": "为了保护密码，只能通过 HTTPS 地址登录和更改皮肤。"}, 403)
             if path == "/api/login":
                 return self.post_login(body)
@@ -330,7 +331,6 @@ class Handler(BaseHTTPRequestHandler):
         online = bool(live and not live.get("stopped") and any(p.get("uuid") == uuid for p in live.get("players") or []))
         return self.send_json({"ok": True, "online": online, "state": self.skins_state()})
 
-    def do_HEAD(self):
     def post_switch(self, body):
         if not worlds.enabled():
             return self.send_json({"error": "还没有设置管理员密码，不能切换。"}, 503)
@@ -355,6 +355,7 @@ class Handler(BaseHTTPRequestHandler):
             return self.send_json({"error": str(e)}, 400)
         return self.send_json({"ok": True}, 202)
 
+    def do_HEAD(self):
         self.do_GET()
 
     def do_GET(self):
@@ -382,15 +383,28 @@ class Handler(BaseHTTPRequestHandler):
                 }))
             if path == "/api/skins":
                 return self.send_json(self.skins_state())
-            m = SKIN_RE.match(path)
             if path == "/api/worlds":
                 return self.send_json(worlds.status())
+            m = SKIN_RE.match(path)
             if m:
                 return self.send_file(skins.png_for(m.group(1)), "image/png")
             m = TILE_RE.match(path)
             if m:
                 world, z, x, y = m.groups()
                 return self.send_file(os.path.join(config.TILES, world, z, "%s_%s.png" % (x, y)), "image/png")
+            m = CAVE_RE.match(path)
+            if m:
+                world, top, x, z = m.group(1), int(m.group(2)), int(m.group(3)), int(m.group(4))
+                if world not in caves.DIMS or not caves.layer_ok(top):
+                    return self.send_error(404)
+                try:
+                    tile = caves.tile_for_request(world, top, x, z)
+                except Exception:
+                    traceback.print_exc()
+                    return self.send_error(503)
+                return self.send_file(tile, "image/png") if tile else self.send_error(404)
+            if path == "/api/structures":
+                return self.send_json(caves.structures())
             m = re.match(r"^/heads/([0-9a-f-]{32,36})\.png$", path)
             if m:
                 skin = skin_for(m.group(1)).replace("/", "_")

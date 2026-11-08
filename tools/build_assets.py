@@ -7,6 +7,7 @@ belong to Mojang, so each user generates them locally from a client they own.
 
 Outputs (all git-ignored):
     server/defs.json                    advancement tree, death-message templates, zh_cn names
+    server/blockcolors.json             average colour of each block, for the underground map layers
     web/assets/tex/...                  block / item textures and HUD icons used by the page
     web/assets/heads/<skin>.png         32x32 face + hat for each of the 18 default skins
     web/assets/skins/<skin>.png         the 18 default skin textures themselves (skins page, heads)
@@ -65,6 +66,10 @@ def main():
     json.dump(defs, open(os.path.join(SERVER, "defs.json"), "w", encoding="utf-8"), ensure_ascii=False)
     print("defs.json: %d advancements, %d death templates" % (len(defs["advancements"]), len(defs["deaths"])))
 
+    colors = block_colors(jar)
+    json.dump(colors, open(os.path.join(SERVER, "blockcolors.json"), "w", encoding="utf-8", newline="\n"), separators=(",", ":"))
+    print("blockcolors.json: %d blocks" % len(colors))
+
     for kind, names in TEXTURES.items():
         os.makedirs(os.path.join(ASSETS, "tex", kind), exist_ok=True)
         for n in names:
@@ -101,6 +106,84 @@ def main():
                        jar.read("assets/minecraft/textures/font/ascii.png"),
                        unifont_zip.read(hexname).decode("ascii"))
     print("mcpixel.woff2: %d glyphs, %d bytes" % (count, os.path.getsize(os.path.join(ASSETS, "mcpixel.woff2"))))
+
+
+# Biome-tinted textures are grey in the jar; use a typical tint for the cave map.
+TINTS = {"grass": (124, 189, 107), "foliage": (89, 174, 48), "water": (63, 118, 228)}
+TINTED = {
+    "water": "water", "bubble_column": "water", "grass_block": "grass", "short_grass": "grass", "tall_grass": "grass",
+    "fern": "grass", "large_fern": "grass", "sugar_cane": "grass", "vine": "foliage", "lily_pad": "foliage",
+    "oak_leaves": "foliage", "jungle_leaves": "foliage", "acacia_leaves": "foliage", "dark_oak_leaves": "foliage",
+    "mangrove_leaves": "foliage", "birch_leaves": "foliage", "spruce_leaves": "foliage",
+}
+
+
+def block_colors(jar):
+    """Block id -> average [r, g, b] of its top (or main) texture, for the cave map layers."""
+    models = {}
+
+    def model(ref):
+        ref = ref.split(":")[-1]
+        if ref not in models:
+            try:
+                models[ref] = json.loads(jar.read("assets/minecraft/models/%s.json" % ref))
+            except KeyError:
+                models[ref] = {}
+        return models[ref]
+
+    def textures(ref):
+        tex, seen = {}, 0
+        while ref and seen < 12:
+            m = model(ref)
+            for k, v in m.get("textures", {}).items():
+                tex.setdefault(k, v)
+            ref, seen = m.get("parent"), seen + 1
+        return tex
+
+    def average(path):
+        try:
+            img = Image.open(io.BytesIO(jar.read("assets/minecraft/textures/%s.png" % path))).convert("RGBA")
+        except KeyError:
+            return None
+        img = img.crop((0, 0, img.width, img.width))       # first frame of animated textures
+        raw = img.tobytes()
+        px = [raw[i:i + 4] for i in range(0, len(raw), 4) if raw[i + 3] > 0]
+        if not px:
+            return None
+        return [sum(p[i] for p in px) // len(px) for i in range(3)]
+
+    out = {}
+    for n in jar.namelist():
+        m = re.match(r"assets/minecraft/blockstates/(\w+)\.json$", n)
+        if not m:
+            continue
+        name = m.group(1)
+        state = json.loads(jar.read(n))
+        if "variants" in state:
+            v = next(iter(state["variants"].values()), None)
+        else:
+            v = (state.get("multipart") or [{}])[0].get("apply")
+        if isinstance(v, list):
+            v = v[0] if v else None
+        if not v or "model" not in v:
+            continue
+        tex = textures(v["model"])
+        key = next((k for k in ("top", "end", "all", "texture", "cross", "plant", "side", "particle") if k in tex), None)
+        if not key and tex:
+            key = next(iter(tex))
+        ref, hops = tex.get(key), 0
+        while isinstance(ref, str) and ref.startswith("#") and hops < 8:
+            ref, hops = tex.get(ref[1:]), hops + 1
+        if not isinstance(ref, str) or ref.startswith("#"):
+            continue
+        c = average(ref.split(":")[-1])
+        if not c:
+            continue
+        if name in TINTED:
+            t = TINTS[TINTED[name]]
+            c = [c[i] * t[i] // 255 for i in range(3)]
+        out["minecraft:" + name] = c
+    return out
 
 
 def head(skin_png, size=32):
