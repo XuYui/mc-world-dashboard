@@ -30,3 +30,11 @@ AUTHME_DB = ENV("DASH_AUTHME_DB", os.path.join(MC, "plugins", "AuthMe", "authme.
 MINESKIN_KEY = ENV("DASH_MINESKIN_KEY", "")                           # optional; without one the free rate limit applies
 PUBLIC_URL = ENV("DASH_PUBLIC_URL", "")                               # https address to send people to for logging in
 LOGIN_OVER_HTTP = ENV("DASH_LOGIN_OVER_HTTP", "") == "1"              # testing only: accept passwords without HTTPS
+
+# 世界 tab: several worlds share the machine, one running at a time; the host's mc-world script
+# switches them. Without DASH_ADMIN_PASSWORD (a hash from `python3 -m mcdash.worlds hash`) the tab
+# only shows which world runs.
+WORLDS_CONFIG = ENV("DASH_WORLDS_CONFIG", "/etc/mc-worlds.json")
+MC_WORLD = ENV("DASH_MC_WORLD", "/usr/local/sbin/mc-world")
+ADMIN_PASSWORD = ENV("DASH_ADMIN_PASSWORD", "")
+GAME_PORT = int(ENV("DASH_GAME_PORT", "25565"))                       # every world uses this port

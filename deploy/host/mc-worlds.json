@@ -1,0 +1,30 @@
+{
+  "worlds": [
+    {
+      "id": "friends_world",
+      "title": "friends_world",
+      "service": "minecraft.service",
+      "dir": "/opt/minecraft",
+      "game": "Paper 26.1.2",
+      "client": "原版 26.1.2",
+      "dashboard": true,
+      "backup_prefix": "minecraft",
+      "backup_items": ["world", "world_nether", "world_the_end", "friends_world", "friends_world_nether",
+                       "friends_world_the_end", "plugins", "config", "server.properties", "bukkit.yml", "spigot.yml",
+                       "permissions.yml", "eula.txt", "ops.json", "whitelist.json", "banned-ips.json",
+                       "banned-players.json"]
+    },
+    {
+      "id": "cobblemon",
+      "title": "宝可梦",
+      "service": "minecraft-cobblemon.service",
+      "dir": "/opt/minecraft-cobblemon",
+      "game": "Fabric 1.21.1 · Cobblemon 1.8.4",
+      "client": "Cobblemon Official Modpack [Fabric] 1.8.4",
+      "dashboard": false,
+      "backup_prefix": "cobblemon",
+      "backup_items": ["world", "config", "mods", "server.properties", "eula.txt", "ops.json", "whitelist.json",
+                       "banned-ips.json", "banned-players.json", "fabric-server-launch.jar"]
+    }
+  ]
+}

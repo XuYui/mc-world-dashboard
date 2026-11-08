@@ -1,0 +1,125 @@
+#!/usr/bin/env python3
+"""Run exactly one Minecraft world at a time.
+
+    mc-world status            print JSON: every world, which one runs, the last switch
+    mc-world switch <id>       start the switch in the background (as its own systemd unit)
+    mc-world do-switch <id>    the switch itself: stop the running world, then start <id>
+
+Worlds are listed in /etc/mc-worlds.json. Their services also carry Conflicts= on each other, so
+two can never run together even if something starts one by hand. The switch waits for the daily
+backup (same lock file), and enables only the new world so it is the one that comes back after a
+reboot. Installed at /usr/local/sbin/mc-world; the dashboard calls `switch` through sudo.
+"""
+import fcntl
+import json
+import os
+import subprocess
+import sys
+import time
+
+CONFIG = "/etc/mc-worlds.json"
+LOCK = "/run/lock/mc-world.lock"
+STATUS_DIR = "/run/mc-world"
+STATUS = os.path.join(STATUS_DIR, "status.json")
+UNIT = "mc-world-switch"
+
+
+def worlds():
+    with open(CONFIG, encoding="utf-8") as f:
+        return json.load(f)["worlds"]
+
+
+def state(service):
+    r = subprocess.run(["systemctl", "is-active", service], capture_output=True, text=True)
+    return r.stdout.strip() or "unknown"
+
+
+def write_status(**fields):
+    os.makedirs(STATUS_DIR, exist_ok=True)
+    os.chmod(STATUS_DIR, 0o755)
+    fields["ts"] = int(time.time())
+    tmp = STATUS + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as f:
+        json.dump(fields, f, ensure_ascii=False)
+    os.chmod(tmp, 0o644)
+    os.replace(tmp, STATUS)
+
+
+def read_status():
+    try:
+        with open(STATUS, encoding="utf-8") as f:
+            return json.load(f)
+    except (OSError, ValueError):
+        return None
+
+
+def status():
+    out = []
+    for w in worlds():
+        out.append({"id": w["id"], "service": w["service"], "state": state(w["service"])})
+    switching = state(UNIT + ".service") in ("active", "activating")
+    print(json.dumps({"worlds": out, "switching": switching, "last": read_status()}, ensure_ascii=False))
+
+
+def find(world_id):
+    for w in worlds():
+        if w["id"] == world_id:
+            return w
+    sys.exit("unknown world: %s" % world_id)
+
+
+def switch(world_id):
+    find(world_id)
+    if state(UNIT + ".service") in ("active", "activating"):
+        sys.exit("a switch is already running")
+    write_status(state="queued", to=world_id)
+    subprocess.run(["systemd-run", "--quiet", "--unit", UNIT, "--collect",
+                    "--description", "Switch the running Minecraft world",
+                    os.path.abspath(__file__), "do-switch", world_id], check=True)
+
+
+def do_switch(world_id):
+    target = find(world_id)
+    others = [w for w in worlds() if w["id"] != world_id]
+    lock = open(LOCK, "w")
+    if not _try_lock(lock):
+        write_status(state="waiting", to=world_id, message="等每日备份结束")
+        fcntl.flock(lock, fcntl.LOCK_EX)
+    try:
+        for w in others:
+            if state(w["service"]) in ("active", "activating", "reloading"):
+                write_status(state="stopping", to=world_id, stopping=w["id"])
+                subprocess.run(["systemctl", "stop", w["service"]], check=True)
+            subprocess.run(["systemctl", "disable", "--quiet", w["service"]], check=False)
+        write_status(state="starting", to=world_id)
+        subprocess.run(["systemctl", "enable", "--quiet", target["service"]], check=True)
+        subprocess.run(["systemctl", "start", target["service"]], check=True)
+        write_status(state="started", to=world_id)
+    except subprocess.CalledProcessError as e:
+        write_status(state="error", to=world_id, message="%s 失败" % " ".join(e.cmd[:2]))
+        raise
+    finally:
+        fcntl.flock(lock, fcntl.LOCK_UN)
+
+
+def _try_lock(f):
+    try:
+        fcntl.flock(f, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        return True
+    except BlockingIOError:
+        return False
+
+
+def main():
+    args = sys.argv[1:]
+    if args == ["status"]:
+        return status()
+    if len(args) == 2 and args[0] == "switch":
+        return switch(args[1])
+    if len(args) == 2 and args[0] == "do-switch":
+        return do_switch(args[1])
+    sys.exit(__doc__)
+
+
+if __name__ == "__main__":
+    main()

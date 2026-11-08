@@ -112,7 +112,7 @@ function openTab(name) {
 document.querySelectorAll("nav button").forEach((b) => b.addEventListener("click", () => openTab(b.dataset.tab)));
 window.addEventListener("hashchange", () => {
   const t = location.hash.slice(1);
-  openTab(["progress", "sessions", "players", "skins"].includes(t) ? t : "map");
+  openTab(["progress", "sessions", "players", "skins", "worlds"].includes(t) ? t : "map");
 });
 
 // ---------- live state (WorldDashboard plugin, via /api/live) ----------
@@ -163,9 +163,14 @@ function renderStatus() {
   const s = data.server;
   const l = liveResp?.live;
   const running = l ? !l.stopped && (!liveResp.paused || s.running) : s.running;
+  // another world on the same machine may be the one running (worlds.js)
+  const other = !running && window.worldsState?.running
+    ? window.worldsState.worlds.find((w) => w.id === window.worldsState.running && !w.dashboard) : null;
   const chips = [running
     ? `<span class="chip ok"><b>● 运行中</b>${s.since ? " · 已运行 " + fmtDur(now() - s.since) : ""}</span>`
-    : `<span class="chip bad"><b>● 离线</b></span>`];
+    : other
+      ? `<span class="chip bad" role="button" tabindex="0" onclick="openTab('worlds')" title="查看世界"><b>● 未运行</b> · 现在开的是 ${esc(other.title)}</span>`
+      : `<span class="chip bad"><b>● 离线</b></span>`];
   const clk = gameClock();
   if (clk) {
     const w = data.clock.weather === "thunder" ? "雷雨" : data.clock.weather === "rain" ? "下雨" : "晴";
@@ -444,7 +449,7 @@ async function loadSummary() {
     renderStatus();
     if (first) {
       const t = location.hash.slice(1);
-      if (["progress", "sessions", "players", "skins"].includes(t)) openTab(t);
+      if (["progress", "sessions", "players", "skins", "worlds"].includes(t)) openTab(t);
     }
   } catch (e) {}
 }

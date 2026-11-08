@@ -1,0 +1,3 @@
+# /etc/sudoers.d/mc-world: the dashboard (running as minecraft) may only ask mc-world to switch worlds.
+# mc-world checks the id against /etc/mc-worlds.json.
+minecraft ALL=(root) NOPASSWD: /usr/local/sbin/mc-world switch *

@@ -1,0 +1,24 @@
+[Unit]
+Description=Minecraft Fabric Server (Cobblemon)
+After=network-online.target
+Wants=network-online.target
+# Only one world runs at a time (see mc-world); minecraft.service carries the reverse Conflicts=
+Conflicts=minecraft.service
+
+[Service]
+Type=simple
+User=minecraft
+Group=minecraft
+WorkingDirectory=/opt/minecraft-cobblemon
+# Cobblemon 1.8 insists on Java 21; the system default is 25 for the Paper server
+ExecStart=/usr/lib/jvm/java-21-openjdk-amd64/bin/java -Xms1G -Xmx2560M -XX:+UseG1GC -XX:+ParallelRefProcEnabled -XX:+UseStringDeduplication -jar fabric-server-launch.jar nogui
+Restart=on-failure
+RestartSec=10
+KillSignal=SIGINT
+TimeoutStopSec=180
+SuccessExitStatus=0 130 143
+LimitNOFILE=65535
+UMask=0027
+
+[Install]
+WantedBy=multi-user.target

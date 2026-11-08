@@ -1,0 +1,64 @@
+#!/usr/bin/env bash
+# Daily backup (minecraft-backup.timer), installed at /usr/local/sbin/minecraft-backup.
+#
+# Only the world that is running gets backed up: a stopped world has not changed since its last
+# backup. It is stopped for the copy and started again afterwards. One archive per world is kept,
+# and the old one is deleted only after the new one is complete. The dashboard is archived on its
+# own every day. Holds the same lock as mc-world, so a world switch waits for the backup.
+set -euo pipefail
+
+backup_dir=/var/backups/minecraft
+timestamp=$(date +%Y%m%d-%H%M%S)
+running_service=
+
+exec 9>/run/lock/mc-world.lock
+flock -w 3600 9
+
+# keep only the newest archive matching <prefix>-*.tar.gz
+prune() {
+    mapfile -t old < <(find "$backup_dir" -maxdepth 1 -type f -name "$1-*.tar.gz" -printf '%T@ %p\n' \
+        | sort -nr | tail -n +2 | cut -d' ' -f2-)
+    if ((${#old[@]})); then rm -f -- "${old[@]}"; fi
+}
+
+cleanup() {
+    rm -f "$backup_dir"/*.tmp
+    if [[ -n $running_service ]]; then systemctl start "$running_service"; fi
+}
+trap cleanup EXIT
+
+# id, service, dir, archive prefix and items of each world, one tab-separated line per world
+mapfile -t worlds < <(python3 -c '
+import json
+for w in json.load(open("/etc/mc-worlds.json"))["worlds"]:
+    print("\t".join([w["id"], w["service"], w["dir"], w["backup_prefix"]] + w["backup_items"]))')
+
+for line in "${worlds[@]}"; do
+    IFS=$'\t' read -r -a f <<<"$line"
+    service=${f[1]} dir=${f[2]} prefix=${f[3]}
+    systemctl is-active --quiet "$service" || continue
+
+    running_service=$service
+    systemctl stop "$service"
+    items=()
+    for item in "${f[@]:4}"; do
+        [[ -e "$dir/$item" ]] && items+=("$item")
+    done
+    if ((${#items[@]})); then
+        archive="$backup_dir/$prefix-$timestamp.tar.gz"
+        tar -czf "$archive.tmp" -C "$dir" "${items[@]}"
+        mv "$archive.tmp" "$archive"
+        prune "$prefix"
+    fi
+    systemctl start "$service"
+    running_service=
+    find "$dir/logs" -type f -mtime +14 -delete 2>/dev/null || true
+done
+
+# The dashboard (code, settings, archived logs, stats history) lives outside the server dirs
+if [[ -d /opt/mc-dashboard ]]; then
+    archive="$backup_dir/mc-dashboard-$timestamp.tar.gz"
+    tar -czf "$archive.tmp" -C /opt mc-dashboard
+    mv "$archive.tmp" "$archive"
+    prune mc-dashboard
+fi

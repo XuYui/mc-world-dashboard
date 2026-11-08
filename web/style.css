@@ -482,3 +482,15 @@ h1, h2, .pcard .nm { font-size: 32px; line-height: 36px; }
   .pickcard { order: 1; } .stagecard { order: 2; } .editcard { order: 3; }
 }
 @media (pointer: coarse) { .mcbtn, .skinslot { min-height: 44px; } }
+
+/* 世界 tab */
+#tab-worlds .small { font-size: 12.5px; margin-top: 4px; }
+#tab-worlds .skinmsg { margin: 12px 0; }
+.wgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; margin-top: 12px; }
+.wcard { display: flex; flex-direction: column; gap: 2px; margin-bottom: 0; }
+.wcard.on { border-color: var(--accent); }
+.wcard .whead { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 6px; }
+.wcard .whead > b { font-size: 16px; }
+.wcard .mcbtn { margin-top: 12px; align-self: flex-start; }
+#tab-worlds .wgrid + .card { margin-top: 12px; }
+.warnline { color: #ffcc4d; }

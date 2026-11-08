@@ -20,7 +20,7 @@ from http.cookies import SimpleCookie
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
 
-from . import auth, config, report, saves, skins
+from . import auth, config, report, saves, skins, worlds
 from .gamedata import skin_for
 from .store import Store
 from .util import load_json
@@ -285,6 +285,8 @@ class Handler(BaseHTTPRequestHandler):
                 auth.logout(self.session_token())
                 return self.send_json({"ok": True}, cookie=self.session_cookie("", 0))
             if not self.secure():
+            if path == "/api/worlds/switch":       # the owner accepted the admin password over plain http
+                return self.post_switch(body)
                 return self.send_json({"error": "为了保护密码，只能通过 HTTPS 地址登录和更改皮肤。"}, 403)
             if path == "/api/login":
                 return self.post_login(body)
@@ -329,6 +331,30 @@ class Handler(BaseHTTPRequestHandler):
         return self.send_json({"ok": True, "online": online, "state": self.skins_state()})
 
     def do_HEAD(self):
+    def post_switch(self, body):
+        if not worlds.enabled():
+            return self.send_json({"error": "还没有设置管理员密码，不能切换。"}, 503)
+        wait = auth.blocked("#admin", self.peer())
+        if wait:
+            return self.send_json({"error": "密码错太多次了，%d 分钟后再试。" % max(1, wait // 60)}, 429)
+        if not worlds.check_admin(str(body.get("password") or "")):
+            auth.failed("#admin", self.peer())
+            return self.send_json({"error": "管理员密码不对。"}, 401)
+        target = str(body.get("to") or "")
+        st = worlds.status(max_age=0)
+        if st["switching"]:
+            return self.send_json({"error": "已经在切换了，等它完成。"}, 409)
+        if st["running"] == target:
+            return self.send_json({"error": "这个世界已经在运行了。"}, 400)
+        p = st["ping"]
+        if p and p["online"] and not body.get("force"):
+            return self.send_json({"confirm": True, "online": p["online"], "names": p["names"]}, 409)
+        try:
+            worlds.switch(target)
+        except worlds.SwitchError as e:
+            return self.send_json({"error": str(e)}, 400)
+        return self.send_json({"ok": True}, 202)
+
         self.do_GET()
 
     def do_GET(self):
@@ -357,6 +383,8 @@ class Handler(BaseHTTPRequestHandler):
             if path == "/api/skins":
                 return self.send_json(self.skins_state())
             m = SKIN_RE.match(path)
+            if path == "/api/worlds":
+                return self.send_json(worlds.status())
             if m:
                 return self.send_file(skins.png_for(m.group(1)), "image/png")
             m = TILE_RE.match(path)
